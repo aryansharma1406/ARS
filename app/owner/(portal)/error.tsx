@@ -1,0 +1,2 @@
+'use client';
+export default function OwnerError({reset}:{error:Error;reset:()=>void}){return <div className="border border-red-900 bg-red-950/20 p-8"><p className="eyebrow">Something went wrong</p><h1 className="mt-3 text-3xl font-black uppercase">Venue data unavailable</h1><p className="mt-3 text-sm text-zinc-500">We could not load this view. No sensitive system details have been exposed.</p><button onClick={reset} className="ars-button mt-6">Try again</button></div>}

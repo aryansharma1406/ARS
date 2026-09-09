@@ -1,0 +1,55 @@
+{
+  "name": "noxpass",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "next typegen && tsc --noEmit",
+    "test": "vitest run",
+    "test:security": "vitest run tests/database.test.ts tests/authorization.test.ts",
+    "validate:schema": "vitest run tests/database.test.ts",
+    "db:setup:sql": "node scripts/supabase-setup.mjs",
+    "db:check": "node scripts/check-supabase.mjs"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.48.1",
+    "canvas-confetti": "^1.9.4",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.475.0",
+    "next": "^15.5.25",
+    "qrcode": "^1.5.4",
+    "qrcode.react": "^4.2.0",
+    "razorpay": "^2.9.5",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "recharts": "^2.15.1",
+    "server-only": "^0.0.1",
+    "tailwind-merge": "^3.0.1"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "@types/canvas-confetti": "^1.9.0",
+    "@types/node": "^20",
+    "@types/qrcode": "^1.5.5",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "autoprefixer": "^10.5.4",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^15.5.25",
+    "postcss": "8.5.28",
+    "tailwindcss": "^3.4.17",
+    "tsx": "^4.23.13",
+    "typescript": "^5",
+    "vitest": "^4.1.11"
+  },
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "overrides": {
+    "postcss": "8.5.28"
+  }
+}

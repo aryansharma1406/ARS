@@ -1,0 +1,10 @@
+node_modules/
+.next/
+.env*
+!.env.example
+*.tsbuildinfo
+.DS_Store
+coverage/
+
+# Generated from the canonical migrations for the Supabase SQL Editor.
+/supabase/setup.sql

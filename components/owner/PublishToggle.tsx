@@ -1,0 +1,3 @@
+'use client';import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+export default function PublishToggle({id,venueId,published}:{id:string;venueId:string;published:boolean}){const router=useRouter();const [busy,setBusy]=useState(false);async function toggle(){setBusy(true);await fetch('/api/owner/events',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,venue_id:venueId,published:!published})});router.refresh();setBusy(false);}return <button disabled={busy} onClick={toggle} className={`ars-button ${published?'ars-button-secondary':''}`}>{busy?'Updating…':published?'Unpublish':'Publish event'}</button>}
