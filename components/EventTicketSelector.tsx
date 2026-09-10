@@ -31,12 +31,12 @@ export default function EventTicketSelector({ event, sourceCode, remaining }: Ev
 
   return (
     <>
-    <div className="glass-panel p-6 sm:p-8 rounded-sm space-y-6 border border-border relative">
+    <div className="glass-panel p-6 sm:p-10 rounded-sm space-y-6 border border-border relative">
       <p className="eyebrow">Choose your access</p>
       <div className="flex items-center justify-between border-b border-border/60 pb-4">
         <div>
-          <span className="text-xs font-bold text-gray-400 uppercase">Selected Tier</span>
-          <h3 className="text-xl font-black uppercase text-white">General access</h3>
+          <span className="text-xs font-bold text-gray-400 uppercase">Ticket type</span>
+          <h3 className="text-2xl font-black uppercase text-white">General VIP Entry</h3>
         </div>
         <div className="text-right">
           <span className="text-2xl font-black text-white">{formatINR(unitPrice)}</span>
@@ -47,21 +47,21 @@ export default function EventTicketSelector({ event, sourceCode, remaining }: Ev
       {/* Quantity Control */}
       {!isSoldOut ? (
         <div className="space-y-4">
-          <div className="flex items-center justify-between bg-surface p-3 rounded-2xl border border-border">
+          <div className="flex items-center justify-between bg-surface p-3 rounded-sm border border-border">
             <span className="text-xs font-semibold text-gray-200">Select Quantity</span>
             <div className="flex items-center gap-3">
               <button
-                onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                aria-label="Decrease quantity" onClick={() => setQuantity(Math.max(1, quantity - 1))}
                 disabled={quantity <= 1}
-                className="w-8 h-8 rounded-xl bg-card border border-border flex items-center justify-center text-white disabled:opacity-30 hover:bg-surface-hover"
+                className="w-11 h-11 rounded-sm bg-card border border-border flex items-center justify-center text-white disabled:opacity-30 hover:bg-surface-hover"
               >
                 <Minus className="w-4 h-4" />
               </button>
               <span className="font-bold text-lg text-white w-6 text-center">{quantity}</span>
               <button
-                onClick={() => setQuantity(Math.min(10, Math.min(remaining, quantity + 1)))}
+                aria-label="Increase quantity" onClick={() => setQuantity(Math.min(10, Math.min(remaining, quantity + 1)))}
                 disabled={quantity >= 10 || quantity >= remaining}
-                className="w-8 h-8 rounded-xl bg-card border border-border flex items-center justify-center text-white disabled:opacity-30 hover:bg-surface-hover"
+                className="w-11 h-11 rounded-sm bg-card border border-border flex items-center justify-center text-white disabled:opacity-30 hover:bg-surface-hover"
               >
                 <Plus className="w-4 h-4" />
               </button>
@@ -101,19 +101,19 @@ export default function EventTicketSelector({ event, sourceCode, remaining }: Ev
           </button>
         </div>
       ) : (
-        <div className="p-4 rounded-2xl bg-red-950/40 border border-red-500/40 text-center space-y-2">
+        <div className="p-4 rounded-sm bg-red-950/40 border border-red-500/40 text-center space-y-2">
           <span className="font-bold text-red-400 text-sm block">Sold Out for This Date</span>
           <p className="text-xs text-gray-400">Check back later or discover another night.</p>
         </div>
       )}
 
       <div className="pt-2 flex items-center justify-center gap-2 text-[11px] text-gray-400">
-        <Lock className="w-3.5 h-3.5 text-accent-emerald" /> 256-Bit SSL Razorpay Server Verification
+        <Lock className="w-3.5 h-3.5 text-accent-emerald" /> Payment verified through Razorpay
       </div>
     </div>
     {!isSoldOut && (
-      <div className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-4 border-t border-white/15 bg-black/95 px-4 py-3 backdrop-blur md:hidden">
-        <div><span className="block text-[10px] uppercase tracking-[.14em] text-zinc-500">From</span><strong className="text-lg text-white">{formatINR(total)}</strong></div>
+      <div className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-4 border-t border-white/15 bg-black/95 px-4 pt-3 pb-[max(.75rem,env(safe-area-inset-bottom))] backdrop-blur lg:hidden">
+        <div><span className="block text-[10px] uppercase tracking-[.14em] text-zinc-500">Total · {quantity} pass{quantity === 1 ? '' : 'es'}</span><strong className="text-lg text-white">{formatINR(total)}</strong></div>
         <button onClick={handleProceed} className="ars-button !min-h-11">Book now</button>
       </div>
     )}

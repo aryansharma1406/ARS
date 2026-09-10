@@ -23,18 +23,18 @@ export default async function TicketPage({ params }: TicketPageProps) {
   const event = await getEventById(ticket.event_id);
 
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+    <div className="ars-page-shell max-w-2xl px-5 py-12 space-y-8">
       
       {/* Header Banner */}
       <div className="text-center space-y-2">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-950/80 border border-emerald-500/50 text-xs font-bold text-emerald-300 animate-pulse">
-          <Sparkles className="w-4 h-4" /> You&apos;re in
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-950/80 border border-emerald-500/50 text-xs font-bold text-emerald-300">
+          <Sparkles className="w-4 h-4" /> {ticket.status === 'VALID' ? 'Ready for the night' : 'Your access record'}
         </div>
         <h1 className="text-3xl sm:text-4xl font-display font-black text-white">
           Your ARS pass
         </h1>
         <p className="text-xs text-gray-400">
-          Show this QR code at <strong className="text-white">{ticket.venue_name || "Club Xtreme, Tito's Lane"}</strong> entrance scanner.
+          Show this QR code at <strong className="text-white">{ticket.venue_name || event?.venue_name || 'the venue'}</strong> entrance scanner.
         </p>
       </div>
 
@@ -45,7 +45,7 @@ export default async function TicketPage({ params }: TicketPageProps) {
       <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
         <Link
           href="/events"
-          className="w-full sm:w-auto px-6 py-3 rounded-xl text-xs font-bold text-gray-300 bg-surface hover:text-white border border-border text-center"
+          className="ars-button ars-button-ghost w-full sm:w-auto px-6"
         >
           Explore more events
         </Link>

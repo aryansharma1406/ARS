@@ -1,17 +1,18 @@
 'use client';
 
 import {
-BarChart3,Building2,Calendar,
-DollarSign,
-QrCode,
-ShieldCheck,
-Ticket,
-Users,
-Zap
+  BarChart3,
+  Building2,
+  Calendar,
+  DollarSign,
+  QrCode,
+  ShieldCheck,
+  Ticket,
+  Users,
+  Zap,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import React from 'react';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -27,57 +28,55 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   ];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-      
-      {/* Admin Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-border p-2 pb-6 gap-4">
+    <div className="operations ars-page-shell px-4 py-8 space-y-7 sm:px-8">
+      <div className="flex flex-col gap-4 rounded-sm border border-white/10 bg-[#090909] p-6 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 border border-accent-purple/40 flex items-center justify-center">
-            <ShieldCheck className="w-6 h-6 text-accent-purple" />
+          <div className="w-12 h-12 border border-accent-pink/40 flex items-center justify-center bg-black">
+            <ShieldCheck className="w-6 h-6 text-accent-pink" />
           </div>
           <div>
-            <span className="text-[10px] font-bold text-accent-purple uppercase tracking-widest block">ARS Intelligence</span>
-            <h1 className="text-2xl font-black uppercase text-white">Partner operations</h1>
+            <span className="text-[10px] font-bold text-accent-pink uppercase tracking-widest block">ARS / Internal operations</span>
+            <h1 className="text-2xl font-black uppercase text-white">Command center</h1>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
           <Link
             href="/staff/scanner"
-            className="px-4 py-2.5 rounded-xl bg-surface border border-border text-xs font-semibold text-accent-cyan hover:text-white hover:bg-surface-hover transition-colors flex items-center gap-2"
+            className="ars-button ars-button-secondary !min-h-10 !px-4"
           >
-            <QrCode className="w-4 h-4" /> Staff Door Portal
+            <QrCode className="w-4 h-4" /> Staff scanner
           </Link>
-          <form action="/api/admin/logout" method="post"><button className="px-4 py-2.5 rounded-xl border border-border text-xs text-gray-300">Sign out</button></form>
+          <form action="/api/admin/logout" method="post">
+            <button className="px-4 py-2.5 rounded-lg border border-border text-xs font-semibold text-zinc-300">Sign out</button>
+          </form>
         </div>
       </div>
 
-      {/* Navigation Sub-bar */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none border-b border-border/60">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = pathname === item.href;
+      <div className="overflow-x-auto">
+        <div className="flex items-center gap-2 border-b border-white/10 pb-2">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = pathname === item.href;
 
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap flex items-center gap-2 transition-all ${
-                isActive
-                  ? 'bg-[#e9e4d9] text-black'
-                  : 'bg-surface/60 text-gray-400 hover:text-white hover:bg-surface border border-border/50'
-              }`}
-            >
-              <Icon className="w-4 h-4" />
-              {item.label}
-            </Link>
-          );
-        })}
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-current={isActive ? "page" : undefined} className={`flex-shrink-0 border-b-2 border-transparent px-4 py-4 text-xs uppercase tracking-wide ${
+                  isActive
+                    ? 'bg-[#cbb88a]/10 text-[#e8dcc0] !border-[#cbb88a]'
+                    : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                <span className="flex items-center gap-2"><Icon className="w-4 h-4" />{item.label}</span>
+              </Link>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Main Admin View Content */}
       <div className="space-y-6">{children}</div>
-
     </div>
   );
 }

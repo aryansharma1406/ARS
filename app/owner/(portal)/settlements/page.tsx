@@ -63,7 +63,7 @@ export default async function OwnerSettlements({
                 <tr key={row.id}>
                   <td className={tdClass}>{row.status}</td>
                   <td className={tdClass}>{row.settlementDate}</td>
-                  <td className={tdClass}><Link className="hover:text-[#d8c79e]" href={`/owner/events/${row.event_id}?venue=${row.venue_id}`}>{row.event_name || 'Event detail'}</Link></td>
+                  <td className={tdClass}><Link className="hover:text-accent-cyan" href={`/owner/events/${row.event_id}?venue=${row.venue_id}`}>{row.event_name || 'Event detail'}</Link></td>
                   <td className={tdClass}>{formatINR(row.venue_amount)}</td>
                   <td className={tdClass}>{formatINR(row.gross_revenue)}</td>
                   <td className={tdClass}>{formatINR(row.refunds)}</td>
@@ -80,11 +80,11 @@ export default async function OwnerSettlements({
 
     <div className="mt-6 grid gap-6 md:grid-cols-2">
       <Panel title="Settlement policy">
-        <p className="text-xs text-zinc-600">Owner cannot edit commission percentage, settlement amount, status, or payment verification.</p>
-        <p className="mt-3 text-xs text-zinc-600">Commission is applied at venue-defined percentage: <strong>{data.venue.commission_percentage}%</strong>.</p>
+        <p className="text-xs text-zinc-500">Owners cannot edit commission percentage, settlement amount, status, or payment verification.</p>
+        <p className="mt-3 text-xs text-zinc-500">Commission is applied at venue-defined percentage: <strong>{data.venue.commission_percentage}%</strong>.</p>
       </Panel>
       <Panel title="Relevant transactions">
-        {rows.length ? <p className="text-xs text-zinc-600">Use the Events page for ticket-level and scan-level audit of each settlement period.</p> : <p className="text-xs text-zinc-600">No transaction references yet.</p>}
+        {rows.length ? <p className="text-xs text-zinc-500">Use the Events page for ticket-level and scan-level audit of each settlement period.</p> : <p className="text-xs text-zinc-500">No transaction references yet.</p>}
       </Panel>
     </div>
   </>;

@@ -9,7 +9,7 @@ Clock,MapPin,
 ShieldAlert,
 Sparkles
 } from 'lucide-react';
-import Image from 'next/image';
+import CatalogImage from '@/components/CatalogImage';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
@@ -35,124 +35,90 @@ export default async function EventDetailPage({ params, searchParams }: EventDet
   const isSoldOut = remaining <= 0;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 pb-28 lg:pb-8">
-      
-      {/* Back button */}
-      <div>
-        <Link 
-          href={`/events${sourceCode ? `?source=${sourceCode}` : ''}`} 
-          className="inline-flex items-center gap-2 text-xs font-semibold text-gray-400 hover:text-white transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" /> Back to All Events
-        </Link>
-      </div>
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-8 pb-28 lg:pb-8">
+      <Link
+        href={`/events${sourceCode ? `?source=${sourceCode}` : ''}`}
+        className="ars-button ars-button-secondary inline-flex w-fit"
+      >
+        <ArrowLeft className="w-4 h-4" /> Back to all events
+      </Link>
 
-      {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        
-        {/* Left Column: Event Media & Details */}
         <div className="lg:col-span-7 space-y-6">
-          
-          {/* Banner Image */}
-          <div className="relative h-[28rem] sm:h-[34rem] w-full overflow-hidden border border-border">
-            <Image
+          <div className="relative h-[26rem] sm:h-[38rem] w-full overflow-hidden border border-white/10">
+            <CatalogImage
               src={event.image}
               alt={event.name}
-              fill
               priority
-              className="object-cover"
+              className="object-cover" sizes="(max-width:1024px) 100vw,60vw"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
-            
-            <div className="absolute top-4 left-4 bg-surface/90 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-border text-xs font-bold text-accent-cyan">
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
+
+            <div className="absolute top-4 left-4 bg-black/75 backdrop-blur-md px-3.5 py-1.5 rounded-sm border border-white/15 text-xs font-black uppercase tracking-[.12em] text-accent-cyan">
               {event.category}
             </div>
 
-            <div className="absolute top-4 right-4 bg-surface/90 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-border text-xs font-bold text-white">
-              {event.age_limit}+ Age Restriction
+            <div className="absolute top-4 right-4 bg-black/75 backdrop-blur-md px-3.5 py-1.5 rounded-sm border border-white/15 text-xs font-black text-white">
+              {event.age_limit}+ age restriction
             </div>
           </div>
 
-          {/* Event Header */}
           <div className="space-y-3">
             {sourceCode && (
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent-pink/10 border border-accent-pink/30 text-xs font-bold text-accent-pink">
-                <Sparkles className="w-3.5 h-3.5" /> Direct Promoter Link: {sourceCode}
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-sm bg-accent-pink/10 border border-accent-pink/30 text-xs font-black text-accent-pink uppercase tracking-[.12em]">
+                <Sparkles className="w-3.5 h-3.5" /> Direct promoter link: {sourceCode}
               </div>
             )}
-            <h1 className="text-4xl sm:text-6xl font-display font-black uppercase text-white leading-[.95]">
-              {event.name}
-            </h1>
-            <p className="text-sm font-semibold text-accent-purple flex items-center gap-1.5">
+            <h1 className="text-5xl sm:text-7xl font-black uppercase text-white leading-[.95] tracking-[-.06em]">{event.name}</h1>
+            <p className="text-sm font-semibold text-accent-cyan flex items-center gap-1.5">
               <MapPin className="w-4 h-4 flex-shrink-0" />
-              {event.venue_name || "Club Xtreme, Tito's Lane, Baga, Calangute, Goa"}
+              {event.venue_name || 'Venue details to be announced'}
             </p>
           </div>
 
-          {/* Quick Details Bar */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 p-4 rounded-2xl glass-panel border border-border/80 text-xs">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 p-4 border-y border-white/15 py-6 text-xs">
             <div>
-              <span className="text-gray-400 block mb-1">Date</span>
+              <span className="text-zinc-400 block mb-1">Date</span>
               <strong className="text-white text-sm flex items-center gap-1">
                 <Calendar className="w-4 h-4 text-accent-cyan" /> {formatDate(event.date)}
               </strong>
             </div>
             <div>
-              <span className="text-gray-400 block mb-1">Doors Open</span>
+              <span className="text-zinc-400 block mb-1">Doors open</span>
               <strong className="text-white text-sm flex items-center gap-1">
                 <Clock className="w-4 h-4 text-accent-pink" /> {formatTime(event.start_time)} - {formatTime(event.end_time)}
               </strong>
             </div>
             <div>
-              <span className="text-gray-400 block mb-1">Availability</span>
-              <strong className={isSoldOut ? "text-red-400 text-sm" : "text-accent-emerald text-sm"}>
-                {isSoldOut ? 'Sold Out' : `${remaining} Tickets Left`}
+              <span className="text-zinc-400 block mb-1">Availability</span>
+              <strong className={isSoldOut ? 'text-red-400 text-sm' : 'text-accent-emerald text-sm'}>
+                {isSoldOut ? 'Sold out' : `${remaining} Tickets left`}
               </strong>
             </div>
           </div>
 
-          {/* Description */}
           <div className="space-y-3">
             <h3 className="text-xl font-black uppercase text-white">About the night</h3>
-            <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-line">
-              {event.description}
-            </p>
+            <p className="text-sm text-zinc-300 leading-relaxed whitespace-pre-line">{event.description}</p>
           </div>
 
-          {/* Venue & Guidelines */}
-          <div className="p-6 rounded-2xl glass-card space-y-4 border border-border">
-            <h3 className="text-base font-bold text-white flex items-center gap-2">
-              <ShieldAlert className="w-5 h-5 text-accent-gold" /> Club Guidelines & Dress Code
+          <div className="space-y-4 ars-card border-white/10 p-6">
+            <h3 className="text-base font-black text-white flex items-center gap-2 uppercase">
+              <ShieldAlert className="w-5 h-5 text-accent-gold" /> Club guidelines & dress code
             </h3>
-            <ul className="space-y-2 text-xs text-gray-300">
-              <li className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-accent-emerald" /> Closed shoes and smart night casuals mandatory for male entry.
-              </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-accent-emerald" /> Physical original ID (Aadhaar / Driving License / Passport) required at door.
-              </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-accent-emerald" /> Digital QR pass must be shown at Club Xtreme main entrance scanner.
-              </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-accent-emerald" /> Strictly 21+ age limit for alcoholic beverage service.
-              </li>
+            <ul className="space-y-2 text-xs text-zinc-300">
+              <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-accent-emerald" /> Closed shoes and smart night casuals mandatory for male entry.</li>
+              <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-accent-emerald" /> Physical original ID (Aadhaar / Driving License / Passport) required at door.</li>
+              <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-accent-emerald" /> Digital QR pass must be shown at the main entrance scanner.</li>
+              <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-accent-emerald" /> Strictly {event.age_limit}+ age limit for alcohol service.</li>
             </ul>
           </div>
-
         </div>
 
-        {/* Right Column: Ticket Selection & Checkout Card */}
-        <div className="lg:col-span-5 sticky top-24">
-          <EventTicketSelector 
-            event={event} 
-            sourceCode={sourceCode} 
-            remaining={remaining} 
-          />
+        <div className="lg:col-span-5 lg:sticky lg:top-28">
+          <EventTicketSelector event={event} sourceCode={sourceCode} remaining={remaining} />
         </div>
-
       </div>
-
     </div>
   );
 }

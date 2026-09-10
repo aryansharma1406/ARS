@@ -23,10 +23,10 @@ export default function DigitalTicketCard({ ticket, event }: DigitalTicketCardPr
   const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (ticket.status === 'VALID') {
+    if (ticket.status === 'VALID' && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       try {
         confetti({
-          particleCount: 80,
+          particleCount: 28,
           spread: 70,
           origin: { y: 0.6 },
           colors: ['#cbb88a', '#f5f3ee', '#6f6857', '#10b981'],
@@ -59,13 +59,13 @@ export default function DigitalTicketCard({ ticket, event }: DigitalTicketCardPr
       case 'PAYMENT_FAILED':
         return (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-950/90 border border-red-500/50 text-red-300 text-xs font-bold uppercase tracking-wider">
-            <XCircle className="w-4 h-4 text-red-400" /> PAYMENT FAILED
+            <XCircle className="w-4 h-4 text-red-400" /> INVALID · PAYMENT FAILED
           </span>
         );
       case 'REFUNDED':
         return (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-950/90 border border-purple-500/50 text-purple-300 text-xs font-bold uppercase tracking-wider">
-            REFUNDED
+            INVALID · REFUNDED
           </span>
         );
       default:
@@ -74,14 +74,14 @@ export default function DigitalTicketCard({ ticket, event }: DigitalTicketCardPr
   };
 
   return (
-    <div className="space-y-4">
+    <div className="pass-card space-y-4">
       {/* Pass Card Container */}
       <div 
         ref={cardRef}
-        className="glass-panel rounded-sm border border-accent-purple/40 overflow-hidden relative"
+        className="glass-panel rounded-sm border border-[#cbb88a]/40 overflow-hidden relative"
       >
         {/* Decorative Neon Header Header */}
-        <div className="bg-[#e9e4d9] p-4 flex items-center justify-between text-black">
+        <div className="bg-[#e9e4d9] p-5 flex flex-wrap gap-3 items-center justify-between text-black">
           <div className="flex items-center gap-2">
             <Sparkles className="w-5 h-5" />
             <span className="font-display font-black tracking-[.18em] text-lg">ARS PASS</span>
@@ -92,17 +92,17 @@ export default function DigitalTicketCard({ ticket, event }: DigitalTicketCardPr
         <div className="p-6 sm:p-8 space-y-6">
           
           {/* Top Info: Event Name & Venue */}
-          <div className="text-center space-y-1">
-            <h2 className="text-2xl sm:text-3xl font-display font-black text-white">
+          <div className="space-y-2">
+            <h2 className="text-3xl sm:text-4xl uppercase leading-tight font-display font-black text-white">
               {ticket.event_name || event?.name}
             </h2>
-            <p className="text-sm text-accent-purple font-semibold flex items-center justify-center gap-1">
-              <MapPin className="w-4 h-4" /> {ticket.venue_name || "Club Xtreme, Tito's Lane, Goa"}
+            <p className="text-sm text-accent-purple font-semibold flex items-center gap-1">
+              <MapPin className="w-4 h-4" /> {ticket.venue_name || event?.venue_name || 'Venue not available'}
             </p>
           </div>
 
           {/* QR Code Section */}
-          <div className="bg-surface/90 p-6 rounded-2xl border border-border flex flex-col items-center justify-center space-y-3 relative">
+          <div className="pass-perforation bg-surface/90 px-3 py-8 flex flex-col items-center justify-center space-y-3 relative">
             <div className="bg-white p-5 rounded-sm">
               <QRCodeSVG
                 value={ticket.qr_token}
@@ -112,8 +112,8 @@ export default function DigitalTicketCard({ ticket, event }: DigitalTicketCardPr
               />
             </div>
             
-            <div className="text-center space-y-1">
-              <code className="text-xs font-mono font-bold text-accent-cyan tracking-wider bg-card px-3 py-1 rounded-md border border-border">
+            <div className="space-y-2">
+              <code className="block max-w-full text-xs font-mono font-bold text-accent-cyan tracking-wider bg-card px-3 py-1 rounded-md border border-border">
                 {ticket.qr_token}
               </code>
               <span className="block text-[10px] text-gray-400">
@@ -123,7 +123,7 @@ export default function DigitalTicketCard({ ticket, event }: DigitalTicketCardPr
           </div>
 
           {/* Details Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 p-4 rounded-2xl bg-surface/50 border border-border/50 text-xs">
+          <div className="grid grid-cols-2 gap-x-6 gap-y-5 p-5 rounded-sm bg-surface/50 border border-border/50 text-xs">
             <div>
               <span className="text-gray-400 block mb-0.5">Guest Holder</span>
               <strong className="text-white text-sm block">{ticket.customer_name}</strong>
@@ -137,14 +137,14 @@ export default function DigitalTicketCard({ ticket, event }: DigitalTicketCardPr
             <div>
               <span className="text-gray-400 block mb-0.5">Date</span>
               <strong className="text-white text-sm block">
-                {event ? formatDate(event.date) : 'Upcoming'}
+                {event ? formatDate(event.date) : 'Not available'}
               </strong>
             </div>
 
             <div>
               <span className="text-gray-400 block mb-0.5">Doors Open</span>
               <strong className="text-white text-sm block">
-                {event ? formatTime(event.start_time) : '21:00'}
+                {event ? formatTime(event.start_time) : 'Not available'}
               </strong>
             </div>
 
@@ -171,7 +171,7 @@ export default function DigitalTicketCard({ ticket, event }: DigitalTicketCardPr
 
         {/* Footer Disclaimer */}
         <div className="bg-surface border-t border-border p-4 text-center text-[11px] text-gray-400">
-          Must present physical government photo ID matching guest name at door. Duplicate scans will trigger security alarm.
+          Must present physical government photo ID matching guest name at door. Each pass can be used for entry once.
         </div>
 
       </div>

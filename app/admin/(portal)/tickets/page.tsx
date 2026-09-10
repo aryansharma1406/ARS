@@ -1,5 +1,7 @@
 'use client';
 
+import { EmptyState, PageLoading } from '@/components/PageState';
+
 import { getTickets } from '@/lib/store';
 import { Ticket } from '@/lib/types';
 import { downloadCSV } from '@/lib/utils';
@@ -8,6 +10,8 @@ import Link from 'next/link';
 import { useEffect,useState } from 'react';
 
 export default function AdminTicketsPage() {
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [search, setSearch] = useState('');
 
@@ -16,8 +20,13 @@ export default function AdminTicketsPage() {
   }, []);
 
   const loadTicketsAndOrders = async () => {
+    setLoadError('');
+    try {
     const tkts = await getTickets();
     setTickets(tkts);
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : 'Unable to load records.');
+    } finally { setLoading(false); }
   };
 
   const filteredTickets = tickets.filter(t => {
@@ -48,108 +57,64 @@ export default function AdminTicketsPage() {
     downloadCSV('ARS_Ticket_Sales.csv', exportData);
   };
 
+  if (loading) return <PageLoading/>;
+
   return (
     <div className="space-y-6">
-      
+      {loadError ? <div role="alert" className="border-l-2 border-red-400 bg-red-950/20 p-5 text-sm text-red-200"><p>{loadError}</p><button className="ars-button ars-button-secondary mt-4" onClick={() => void loadTicketsAndOrders()}>Retry loading</button></div> : !filteredTickets.length && <EmptyState title="No tickets to display" copy="Records matching this view will appear here when available."/>}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-white">Tickets & Transaction Log</h2>
-          <p className="text-xs text-gray-400">View guest passes, QR tokens, payment status, and promoter sources</p>
+          <h2 className="text-2xl font-black uppercase text-white">Tickets & transaction log</h2>
+          <p className="text-xs text-zinc-400">View guest passes, QR tokens, payment status, and promoter sources.</p>
         </div>
-
-        <button
-          onClick={handleExportCSV}
-          className="px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-surface border border-border hover:bg-surface-hover transition-colors flex items-center gap-2"
-        >
+        <button onClick={handleExportCSV} className="ars-button flex items-center gap-2">
           <Download className="w-4 h-4 text-accent-cyan" /> Export Ticket Sales CSV
         </button>
       </div>
 
-      {/* Search Input */}
       <div className="relative max-w-md">
-        <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-        <input
-          type="text"
-          placeholder="Filter by Ticket ID, Customer, Source (e.g. XYZ-ARYAN)..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="w-full bg-surface border border-border rounded-xl pl-10 pr-4 py-2.5 text-xs text-white focus:outline-none focus:border-accent-purple"
-        />
+        <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+        <input type="text" placeholder="Filter by ticket id, customer, source" value={search} onChange={e => setSearch(e.target.value)} className="ars-input !pl-10" />
       </div>
 
-      {/* Table */}
-      <div className="glass-panel rounded-3xl border border-border overflow-hidden">
+      <div className="ars-card overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-gray-300">
-            <thead className="bg-surface/80 text-gray-400 uppercase text-[10px] font-bold border-b border-border">
+          <table className="w-full text-left text-xs text-zinc-300">
+            <thead className="bg-black/30 text-zinc-500 uppercase text-[10px] font-black border-b border-white/10">
               <tr>
-                <th className="px-6 py-4">Ticket Pass</th>
-                <th className="px-6 py-4">Customer Details</th>
-                <th className="px-6 py-4">Event & Venue</th>
-                <th className="px-6 py-4">Source Code</th>
-                <th className="px-6 py-4">Door Status</th>
-                <th className="px-6 py-4 text-right">Pass View</th>
+                <th className="px-6 py-4">Ticket pass</th>
+                <th className="px-6 py-4">Customer details</th>
+                <th className="px-6 py-4">Event & venue</th>
+                <th className="px-6 py-4">Source code</th>
+                <th className="px-6 py-4">Door status</th>
+                <th className="px-6 py-4 text-right">Pass view</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border/40">
+            <tbody className="divide-y divide-white/5">
               {filteredTickets.map((t) => (
-                <tr key={t.id} className="hover:bg-surface/40 transition-colors">
-                  <td className="px-6 py-4 font-mono font-bold text-white">
-                    <span className="block text-accent-cyan">{t.qr_token}</span>
-                    <span className="text-[10px] text-gray-500 font-normal">ID: {t.id}</span>
-                  </td>
-
+                <tr key={t.id} className="hover:bg-black/40 transition-colors">
+                  <td className="px-6 py-4 font-mono font-black text-white"><span className="block text-accent-cyan">{t.qr_token}</span><span className="text-[10px] text-zinc-500 font-normal">ID: {t.id}</span></td>
+                  <td className="px-6 py-4"><strong className="text-white block">{t.customer_name}</strong><span className="text-[11px] text-zinc-400 block">{t.customer_email}</span><span className="text-[11px] text-zinc-500">{t.customer_phone}</span></td>
+                  <td className="px-6 py-4"><strong className="text-white block">{t.event_name}</strong><span className="text-[11px] text-accent-purple">{t.venue_name}</span></td>
                   <td className="px-6 py-4">
-                    <strong className="text-white block">{t.customer_name}</strong>
-                    <span className="text-[11px] text-gray-400 block">{t.customer_email}</span>
-                    <span className="text-[11px] text-gray-500">{t.customer_phone}</span>
+                    {t.source_code ? <span className="px-2.5 py-1 rounded bg-accent-pink/20 border border-accent-pink/40 text-accent-pink font-mono text-[11px]">{t.source_code}</span> : <span className="text-zinc-500 italic">Direct organic</span>}
                   </td>
-
                   <td className="px-6 py-4">
-                    <strong className="text-white block">{t.event_name}</strong>
-                    <span className="text-[11px] text-accent-purple">{t.venue_name}</span>
-                  </td>
-
-                  <td className="px-6 py-4">
-                    {t.source_code ? (
-                      <span className="px-2.5 py-1 rounded bg-accent-pink/20 border border-accent-pink/40 text-accent-pink font-mono font-bold text-[11px]">
-                        {t.source_code}
-                      </span>
-                    ) : (
-                      <span className="text-gray-500 italic">Direct Organic</span>
-                    )}
-                  </td>
-
-                  <td className="px-6 py-4">
-                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold inline-flex items-center gap-1 ${
-                      t.status === 'VALID'
-                        ? 'bg-emerald-950 text-emerald-300 border border-emerald-500/40'
-                        : t.status === 'USED'
-                        ? 'bg-amber-950 text-amber-300 border border-amber-500/40'
-                        : 'bg-red-950 text-red-300'
+                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-black inline-flex items-center gap-1 ${
+                      t.status === 'VALID' ? 'bg-emerald-950 text-emerald-300 border border-emerald-500/40' : t.status === 'USED' ? 'bg-amber-950 text-amber-300 border border-amber-500/40' : 'bg-red-950 text-red-300'
                     }`}>
                       {t.status === 'VALID' && <CheckCircle2 className="w-3 h-3 text-emerald-400" />}
                       {t.status === 'USED' && <AlertTriangle className="w-3 h-3 text-amber-400" />}
                       {t.status}
                     </span>
                   </td>
-
-                  <td className="px-6 py-4 text-right">
-                    <Link
-                      href={`/ticket/${t.id}`}
-                      target="_blank"
-                      className="text-xs font-bold text-accent-purple hover:underline"
-                    >
-                      Open Pass &rarr;
-                    </Link>
-                  </td>
+                  <td className="px-6 py-4 text-right"><Link href={`/ticket/${t.id}`} target="_blank" className="text-xs font-black text-accent-purple">Open pass →</Link></td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </div>
-
     </div>
   );
 }

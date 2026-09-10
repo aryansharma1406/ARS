@@ -5,11 +5,13 @@ import { formatDate,formatINR,formatTime } from '@/lib/utils';
 import {
 AlertCircle,
 Calendar as CalendarIcon,
-CreditCard,Loader2,
-Mail,Phone,
+CreditCard,
+Mail,
+Phone,
 ShieldCheck,
 User
 } from 'lucide-react';
+import CatalogImage from '@/components/CatalogImage';
 import { useRouter } from 'next/navigation';
 import React,{ useEffect,useState } from 'react';
 
@@ -22,7 +24,7 @@ interface CheckoutFormProps {
 
 export default function CheckoutForm({ event, initialQuantity, sourceCode, accountEmail }: CheckoutFormProps) {
   const router = useRouter();
-  
+
   const [formData, setFormData] = useState({
     name: '',
     email: accountEmail,
@@ -148,16 +150,16 @@ export default function CheckoutForm({ event, initialQuantity, sourceCode, accou
 
   return (
     <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-      
+
       {/* Left Column: Customer Form Inputs */}
-      <div className="lg:col-span-7 glass-panel p-6 sm:p-8 rounded-sm space-y-6 border border-border">
-        
-        <h3 className="text-lg font-bold text-white flex items-center gap-2">
-          <User className="w-5 h-5 text-accent-purple" /> Guest Details
+      <div className="lg:col-span-7 ars-card p-6 sm:p-8 space-y-6">
+
+        <h3 className="text-lg font-black text-white flex items-center gap-2 uppercase tracking-wide">
+          <User className="w-5 h-5 text-accent-cyan" /> Guest details
         </h3>
 
         {errorMsg && (
-          <div className="p-4 rounded-xl bg-red-950/60 border border-red-500/50 text-red-300 text-xs flex items-center gap-2">
+          <div role="alert" className="rounded-sm bg-red-950/60 border border-red-500/40 p-4 text-xs text-red-300 flex gap-2">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
             <span>{errorMsg}</span>
           </div>
@@ -165,78 +167,78 @@ export default function CheckoutForm({ event, initialQuantity, sourceCode, accou
 
         <div className="space-y-4 text-xs">
           <div>
-            <label className="block font-semibold text-gray-300 mb-1.5">Full Name (Matching Physical ID)</label>
+            <label className="ars-label">Full name (matching physical ID)</label>
             <div className="relative">
-              <User className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <User className="w-4 h-4 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 required
-                placeholder="Rohan Mehta"
+                aria-label="Full name matching photo ID" autoComplete="name" placeholder="Your full name"
                 value={formData.name}
                 onChange={e => setFormData({ ...formData, name: e.target.value })}
-                className="w-full bg-surface border border-border rounded-xl pl-10 pr-4 py-3 text-sm text-white focus:outline-none focus:border-accent-purple"
+                className="ars-input !pl-10"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block font-semibold text-gray-300 mb-1.5">Email Address (For QR Pass)</label>
+              <label className="ars-label">Account email</label>
               <div className="relative">
-                <Mail className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <Mail className="w-4 h-4 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="email"
                   readOnly
                   required
-                  placeholder="rohan@example.com"
+                  aria-label="Account email" placeholder="you@example.com"
                   value={formData.email}
                   onChange={e => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full bg-surface border border-border rounded-xl pl-10 pr-4 py-3 text-sm text-white focus:outline-none focus:border-accent-purple"
+                  className="ars-input !pl-10"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block font-semibold text-gray-300 mb-1.5">Mobile Number (WhatsApp SMS)</label>
+              <label className="ars-label">Mobile number</label>
               <div className="relative">
-                <Phone className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <Phone className="w-4 h-4 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="tel"
                   required
-                  placeholder="+91 98200 11223"
+                  aria-label="Mobile number" autoComplete="tel" placeholder="+91"
                   value={formData.phone}
                   onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full bg-surface border border-border rounded-xl pl-10 pr-4 py-3 text-sm text-white focus:outline-none focus:border-accent-purple"
+                  className="ars-input !pl-10"
                 />
               </div>
             </div>
           </div>
 
           <div>
-            <label className="block font-semibold text-gray-300 mb-1.5">Date of Birth</label>
+            <label className="ars-label">Date of birth</label>
             <div className="relative">
-              <CalendarIcon className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <CalendarIcon className="w-4 h-4 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
-                type="date"
+                aria-label="Date of birth" type="date"
                 required
                 value={formData.dob}
                 onChange={e => setFormData({ ...formData, dob: e.target.value })}
-                className="w-full bg-surface border border-border rounded-xl pl-10 pr-4 py-3 text-sm text-white focus:outline-none focus:border-accent-purple"
+                className="ars-input !pl-10"
               />
             </div>
           </div>
 
           <div className="pt-2">
-            <label className="flex items-start gap-3 cursor-pointer">
+            <label className="flex items-start gap-3 cursor-pointer text-xs text-zinc-300 leading-normal">
               <input
                 type="checkbox"
                 required
                 checked={formData.ageConfirmed}
                 onChange={e => setFormData({ ...formData, ageConfirmed: e.target.checked })}
-                className="mt-0.5 rounded border-border text-accent-purple focus:ring-accent-purple"
+                className="mt-0.5 size-4 rounded border-border text-accent-purple focus:ring-accent-purple"
               />
-              <span className="text-xs text-gray-300 leading-normal">
-                I confirm that I am at least <strong className="text-white">{event.age_limit}+ years old</strong> and agree to present physical government ID at the Club Xtreme entrance.
+              <span>
+                I confirm I am at least <strong className="text-white">{event.age_limit}+ years old</strong> and agree to present a physical government ID at the entrance.
               </span>
             </label>
           </div>
@@ -245,25 +247,24 @@ export default function CheckoutForm({ event, initialQuantity, sourceCode, accou
       </div>
 
       {/* Right Column: Order Summary & Razorpay Trigger */}
-      <div className="lg:col-span-5 glass-panel p-6 sm:p-8 rounded-3xl space-y-6 border border-border h-fit">
-        <h3 className="text-lg font-bold text-white border-b border-border pb-4">
-          Order Summary
-        </h3>
+      <div className="lg:col-span-5 ars-card h-fit lg:sticky lg:top-28 space-y-6 p-6 sm:p-8">
+        <div className="relative aspect-[2/1] overflow-hidden"><CatalogImage src={event.image} alt={event.name} sizes="(max-width:1024px) 100vw,40vw" className="object-cover"/></div>
+        <h3 className="text-lg font-black text-white border-b border-white/10 pb-4 uppercase tracking-wide">Order summary</h3>
 
         <div className="space-y-3">
           <div>
-            <h4 className="text-base font-bold text-white">{event.name}</h4>
-            <p className="text-xs text-accent-purple font-medium">
-              {event.venue_name || "Club Xtreme, Tito's Lane, Goa"}
+            <h4 className="text-base font-black text-white">{event.name}</h4>
+            <p className="text-xs text-accent-pink font-medium">
+              {event.venue_name || 'Venue details to be announced'}
             </p>
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-xs text-zinc-400 mt-1">
               {formatDate(event.date)} at {formatTime(event.start_time)}
             </p>
           </div>
 
-          <div className="pt-3 border-t border-border/50 space-y-2 text-xs text-gray-300">
+          <div className="pt-3 border-t border-white/10 space-y-2 text-xs text-zinc-300">
             <div className="flex justify-between">
-              <span>Pass Tier</span>
+              <span>Pass tier</span>
               <span className="text-white font-semibold">General VIP Entry</span>
             </div>
             <div className="flex justify-between">
@@ -271,24 +272,16 @@ export default function CheckoutForm({ event, initialQuantity, sourceCode, accou
               <span className="text-white font-semibold">{quantity} Pass(es)</span>
             </div>
             <div className="flex justify-between">
-              <span>Ticket Subtotal</span>
+              <span>Ticket subtotal</span>
               <span className="text-white font-semibold">{formatINR(subtotal)}</span>
             </div>
             <div className="flex justify-between">
-              <span>Fees & Taxes (3%)</span>
+              <span>Processing fee (3%)</span>
               <span className="text-white font-semibold">{formatINR(fees)}</span>
             </div>
-
-            {sourceCode && (
-              <div className="flex justify-between text-accent-pink pt-1 font-semibold">
-                <span>Promoter Referral</span>
-                <span>{sourceCode}</span>
-              </div>
-            )}
-
-            <div className="flex justify-between pt-3 border-t border-border text-base font-black text-white">
-              <span>Final Amount</span>
-              <span className="text-accent-pink">{formatINR(total)}</span>
+            <div className="flex justify-between border-t border-white/10 pt-3 text-2xl text-white">
+              <span className="font-bold uppercase">Total due</span>
+              <span className="font-black">{formatINR(total)}</span>
             </div>
           </div>
         </div>
@@ -296,21 +289,15 @@ export default function CheckoutForm({ event, initialQuantity, sourceCode, accou
         <button
           type="submit"
           disabled={isSubmitting}
-          className="ars-button w-full disabled:opacity-50"
+          className="ars-button flex w-full items-center justify-center gap-2"
         >
-          {isSubmitting ? (
-            <>
-              <Loader2 className="w-5 h-5 animate-spin" /> Verifying Server Payment...
-            </>
-          ) : (
-            <>
-              <CreditCard className="w-5 h-5" /> Pay securely · {formatINR(total)}
-            </>
-          )}
+          <CreditCard className="w-4 h-4" />
+          {isSubmitting ? 'Processing...' : `Pay ${formatINR(total)} securely`}
         </button>
 
-        <div className="flex items-center justify-center gap-2 text-[11px] text-gray-400 pt-2">
-          <ShieldCheck className="w-4 h-4 text-accent-emerald" /> 100% Secure Server Signature Handshake
+        <div className="rounded-xl border border-white/15 px-3 py-3 text-xs text-zinc-300 flex gap-2 bg-black/20">
+          <ShieldCheck className="w-4 h-4 text-accent-cyan" />
+          <span>Your digital QR pass is available after verified payment. Find it anytime in My Pass.</span>
         </div>
       </div>
 

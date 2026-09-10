@@ -28,35 +28,24 @@ export default async function CheckoutPage({ params, searchParams }: CheckoutPag
   const quantity = Math.min(10, Math.max(1, parseInt(qty || '1', 10) || 1));
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-      
-      {/* Top back */}
+    <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8 space-y-8">
       <div>
-        <Link 
-          href={`/events/${event.id}${sourceCode ? `?source=${sourceCode}` : ''}`} 
-          className="inline-flex items-center gap-2 text-xs font-semibold text-gray-400 hover:text-white transition-colors"
+        <Link
+          href={`/events/${event.id}${sourceCode ? `?source=${sourceCode}` : ''}`}
+          className="ars-button ars-button-secondary inline-flex w-fit"
         >
-          <ArrowLeft className="w-4 h-4" /> Back to Event
+          <ArrowLeft className="w-4 h-4" /> Back to event
         </Link>
       </div>
 
-      <div className="space-y-2">
+      <section className="space-y-2">
         <p className="eyebrow">Your night is almost set</p>
-        <h1 className="text-4xl sm:text-5xl font-display font-black uppercase text-white">
-          Secure checkout
-        </h1>
-        <p className="text-xs text-gray-400">
-          Your ARS pass is issued immediately after verified payment.
-        </p>
-      </div>
+        <h1 className="text-4xl sm:text-5xl font-black uppercase text-white">Secure checkout</h1>
+        <p className="text-sm text-zinc-400">Your ARS pass is issued immediately after verified payment.</p>
+      </section>
 
-      <CheckoutForm 
-        event={event}
-        accountEmail={customer.email} 
-        initialQuantity={quantity} 
-        sourceCode={sourceCode} 
-      />
-
+      <div className="flex flex-wrap gap-6 border-y border-white/10 py-5 text-[10px] font-bold uppercase tracking-[.15em] text-zinc-400"><span>01 / Review your access</span><span>02 / Secure checkout</span><span>03 / Digital QR pass</span></div>
+      <CheckoutForm event={event} accountEmail={customer.email} initialQuantity={quantity} sourceCode={sourceCode} />
     </div>
   );
 }

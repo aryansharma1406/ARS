@@ -55,8 +55,8 @@ export default async function OwnerPromoters({
 
     <div className="mt-6">
       <Panel title="Attribution chain safety">
-        <p className="text-sm text-zinc-600">Order source → Ticket → Scan → Settlement attribution remains system-managed.</p>
-        <p className="mt-2 text-sm text-zinc-600">Owners can read this report but cannot alter historical commission or attribution mappings.</p>
+        <p className="text-sm text-zinc-500">Order source → Ticket → Scan → Settlement attribution remains system-managed.</p>
+        <p className="mt-2 text-sm text-zinc-500">Owners can view this report and cannot alter historical commission or attribution mappings.</p>
       </Panel>
     </div>
   </>;

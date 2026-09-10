@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import EventCard from '@/components/EventCard';
 import { getPublicCatalog } from '@/lib/catalog';
 import CatalogUnavailable from '@/components/CatalogUnavailable';
@@ -10,6 +11,7 @@ interface EventsPageProps {
     source?: string;
     query?: string;
     price?: string;
+    date?: string;
   }>;
 }
 
@@ -23,8 +25,11 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
   const searchQuery = (params.query || '').toLowerCase();
   const priceMax = params.price ? parseInt(params.price, 10) : 10000;
 
-  // Filter logic
+  const categories = [...new Set(events.map(event => event.category))].sort();
+
+  // Discovery filters only; catalog and purchase rules are unchanged.
   const filteredEvents = events.filter(evt => {
+    if (params.date && evt.date !== params.date) return false;
     if (venueFilter && !evt.venue_name?.toLowerCase().includes(venueFilter.toLowerCase())) {
       return false;
     }
@@ -45,101 +50,84 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
   });
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
-      
-      {/* Header */}
-      <div className="space-y-3">
+    <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 space-y-8">
+      <section className="space-y-4 border-b border-white/10 pb-6">
         <div className="eyebrow">Find your night</div>
-        <h1 className="text-4xl sm:text-6xl font-display font-black uppercase text-white">
-          What&apos;s happening tonight?
-        </h1>
-        <p className="text-sm text-gray-400 max-w-xl">
-          Search the live ARS line-up by event, venue or sound.
-          {sourceCode && (
-            <span className="block mt-2 font-semibold text-accent-pink">
-              🏷️ Promoter Referral Code active: <code className="bg-surface px-2 py-0.5 rounded border border-border">{sourceCode}</code>
-            </span>
-          )}
+        <h1 className="text-6xl sm:text-8xl font-black uppercase text-white">Events</h1>
+        <p className="text-sm text-zinc-400 max-w-2xl">
+          Find your next night out.
+          {sourceCode && <span className="mt-2 block text-accent-cyan font-black uppercase tracking-[.16em]">Promoter referral: <code className="ars-chip">{sourceCode}</code></span>}
         </p>
-      </div>
+      </section>
 
       {/* Filter Toolbar */}
-      <div className="glass-panel p-4 sm:p-6 rounded-2xl space-y-4 border border-border">
+      <section className="ars-card p-4 sm:p-6 space-y-4">
         <form method="GET" action="/events" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {sourceCode && <input type="hidden" name="source" value={sourceCode} />}
-          
-          {/* Search Box */}
-          <div className="relative">
-            <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+
+          <div className="relative lg:col-span-2">
+            <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               name="query"
               defaultValue={params.query || ''}
-              placeholder="Search event or artist..."
-              className="w-full bg-surface border border-border rounded-xl pl-10 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-accent-purple"
+              aria-label="Search events" placeholder="Search event or venue"
+              className="ars-input !pl-10"
             />
           </div>
 
-          {/* Venue Selector */}
           <div className="relative">
-            <MapPin className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <MapPin className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <select
-              name="venue"
+              aria-label="Filter by venue" name="venue"
               defaultValue={venueFilter}
-              className="w-full bg-surface border border-border rounded-xl pl-10 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-accent-purple appearance-none cursor-pointer"
+              className="ars-select !pl-10"
             >
-              <option value="">All Venues</option>
+              <option value="">All venues</option>
               {venues.map(v => (
                 <option key={v.id} value={v.name}>{v.name} ({v.location})</option>
               ))}
             </select>
           </div>
 
-          {/* Category Filter */}
           <div className="relative">
-            <Filter className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <Filter className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <select
-              name="category"
+              aria-label="Filter by genre" name="category"
               defaultValue={categoryFilter}
-              className="w-full bg-surface border border-border rounded-xl pl-10 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-accent-purple appearance-none cursor-pointer"
+              className="ars-select !pl-10"
             >
-              <option value="">All Music Genres</option>
-              <option value="Techno">Melodic Techno / EDM</option>
-              <option value="House">Deep House</option>
-              <option value="Bollywood">Bollywood / Commercial</option>
+              <option value="">All music genres</option>
+              {categories.map(category => <option key={category} value={category}>{category}</option>)}
             </select>
           </div>
 
-          {/* Submit Button */}
-          <div className="flex gap-2">
-            <button
-              type="submit"
-              className="w-full py-2.5 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-accent-purple to-accent-pink hover:opacity-90 transition-all"
-            >
-              Apply Filters
-            </button>
-          </div>
-
+          <label className="flex items-center gap-3 text-xs text-zinc-400 lg:col-span-2">Date<input className="ars-input" aria-label="Filter by date" type="date" name="date" defaultValue={params.date || ''}/></label>
+          {params.price && <input type="hidden" name="price" value={params.price}/>}
+          <Link href={sourceCode ? `/events?source=${encodeURIComponent(sourceCode)}` : '/events'} className="ars-button ars-button-secondary">Clear filters</Link>
+          <button
+            type="submit"
+            className="ars-button"
+          >
+            Apply filters
+          </button>
         </form>
-      </div>
+      </section>
 
-      {/* Events Grid */}
       {issue ? <CatalogUnavailable issue={issue}/> : filteredEvents.length === 0 ? (
-        <div className="glass-panel rounded-3xl p-12 text-center space-y-4 border border-border">
-          <div className="w-16 h-16 rounded-2xl bg-surface mx-auto flex items-center justify-center border border-border text-gray-400">
+        <section className="ars-card p-12 text-center space-y-4">
+          <div className="w-16 h-16 rounded-2xl bg-black mx-auto flex items-center justify-center border border-white/10 text-zinc-500">
             <Calendar className="w-8 h-8" />
           </div>
-          <h3 className="text-xl font-bold text-white">No Events Found</h3>
-          <p className="text-sm text-gray-400 max-w-sm mx-auto">
-            No live events match these filters. Change your selection and find another night.
-          </p>
-        </div>
+          <h3 className="text-xl font-black text-white uppercase">No events found</h3>
+          <p className="text-sm text-zinc-500 max-w-sm mx-auto">No live events match these filters. Adjust your search and find another night.</p>
+        </section>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredEvents.map(evt => (
-            <EventCard key={evt.id} event={evt} sourceCode={sourceCode} />
-          ))}
-        </div>
+        <section className="space-y-8">
+          <p className="eyebrow">The line-up / {filteredEvents.length} event{filteredEvents.length === 1 ? '' : 's'}</p>
+          <EventCard event={filteredEvents[0]} sourceCode={sourceCode} featured />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">{filteredEvents.slice(1).map(evt => <EventCard key={evt.id} event={evt} sourceCode={sourceCode}/>)}</div>
+        </section>
       )}
 
     </div>

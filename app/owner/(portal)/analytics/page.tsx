@@ -60,11 +60,12 @@ export default async function OwnerAnalytics({
       eyebrow="Venue intelligence"
       title="Analytics"
       action={
-        <div className="flex border border-white/10">
+        <div className="flex flex-wrap gap-2 border border-white/10 p-1 rounded-xl bg-black/20">
           {['TODAY', 'YESTERDAY', '7D', '30D'].map(item => <Link
             key={item}
             href={`/owner/analytics?venue=${data.venue.id}&range=${item}`}
-            className={`px-3 py-2 text-xs font-bold ${range === item ? 'bg-white text-black' : 'text-zinc-600'}`}>
+            className={`px-3 py-2 text-xs font-black uppercase tracking-[.16em] ${range === item ? 'ars-chip' : 'text-zinc-400'}`}
+          >
             {item}
           </Link>)}
         </div>
@@ -80,8 +81,8 @@ export default async function OwnerAnalytics({
     </div>
 
     <div className="mt-6 grid gap-6 xl:grid-cols-2">
-      <Panel title={`Revenue trend · ${range === 'CUSTOM' ? `${customFrom} to ${customTo}` : range}`}><Bars values={salesByDay} /></Panel>
-      <Panel title="Peak entry times"><Bars values={attendanceByHour} /></Panel>
+      <Panel title={`Revenue trend · ${range === 'CUSTOM' ? `${customFrom} to ${customTo}` : range}`}><Bars labels={revenueDays.labels} values={salesByDay} /></Panel>
+      <Panel title="Peak entry times"><Bars unit="" labels={Array.from({length:24},(_,i) => `${i}:00`)} values={attendanceByHour} /></Panel>
     </div>
 
     <div className="mt-6 grid gap-6 xl:grid-cols-2">
@@ -112,26 +113,26 @@ export default async function OwnerAnalytics({
 
     <div className="mt-6 grid gap-6 xl:grid-cols-3">
       <Panel title="Customer performance">
-        <p className="text-xs text-zinc-600">Customers with visits</p>
+        <p className="text-xs text-zinc-500">Customers with visits</p>
         <p className="mt-1 text-2xl font-black text-white">{customerRows.length}</p>
-        <p className="mt-4 border-t border-white/10 pt-4 text-xs text-zinc-600">Average spend</p>
-        <p className="mt-2 text-lg font-bold text-white">{formatINR(customerRows.length ? customerRows.reduce((sum, c) => sum + c.averageSpend, 0) / customerRows.length : 0)}</p>
+        <p className="mt-4 border-t border-white/10 pt-4 text-xs text-zinc-500">Average spend</p>
+        <p className="mt-2 text-lg font-black text-white">{formatINR(customerRows.length ? customerRows.reduce((sum, c) => sum + c.averageSpend, 0) / customerRows.length : 0)}</p>
       </Panel>
 
       <Panel title="Promoter performance">
-        {promoterMetrics.length ? <div className="space-y-3">{promoterMetrics.slice(0, 4).map(promoter => <div key={promoter.source_code} className="flex justify-between gap-4 border-b border-white/10 pb-2"><span className="text-zinc-300">{promoter.promoter_name}</span><span className="font-bold">{promoter.tickets_sold} · {formatINR(promoter.gross_entry_revenue)}</span></div>)}</div> : <Empty title="No promoters yet" copy="No attributed promoter sales in this range." />}
+        {promoterMetrics.length ? <div className="space-y-3">{promoterMetrics.slice(0, 4).map(promoter => <div key={promoter.source_code} className="flex justify-between gap-4 border-b border-white/10 pb-2"><span className="text-zinc-300">{promoter.promoter_name}</span><span className="font-black">{promoter.tickets_sold} · {formatINR(promoter.gross_entry_revenue)}</span></div>)}</div> : <Empty title="No promoters yet" copy="No attributed promoter sales in this range." />}
       </Panel>
 
       <Panel title="Customer repeat behavior">
-        <p className="text-xs text-zinc-600">Returning customers</p>
+        <p className="text-xs text-zinc-500">Returning customers</p>
         <p className="mt-2 text-2xl font-black text-white">{returningCustomers}</p>
-        <p className="mt-4 border-t border-white/10 pt-4 text-xs text-zinc-600">Repeat rate</p>
-        <p className="mt-2 font-bold text-white">{customerRows.length ? `${Math.round((returningCustomers / customerRows.length) * 100)}%` : '0%'}</p>
+        <p className="mt-4 border-t border-white/10 pt-4 text-xs text-zinc-500">Repeat rate</p>
+        <p className="mt-2 font-black text-white">{customerRows.length ? `${Math.round((returningCustomers / customerRows.length) * 100)}%` : '0%'}</p>
       </Panel>
     </div>
 
     {query.from || query.to ?
-      <p className="mt-6 text-xs text-zinc-600">Custom filter is in use. Showing events and customers from {query.from || 'start'} to {query.to || 'end'}.</p>
+      <p className="mt-6 text-xs text-zinc-500">Custom filter is in use. Showing events and customers from {query.from || 'start'} to {query.to || 'end'}.</p>
       : null}
   </>;
 }

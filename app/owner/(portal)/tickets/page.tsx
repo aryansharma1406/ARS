@@ -55,30 +55,26 @@ export default async function OwnerTickets({
     <Panel title="Search & filters">
       <form className="grid gap-3 md:grid-cols-5">
         <input type="hidden" name="venue" value={data.venue.id} />
-        <input name="query" defaultValue={q.query} placeholder="Ticket, customer or phone" className="border border-white/15 bg-black px-3 text-sm" />
-
-        <select name="event" defaultValue={q.event || ''} className="border border-white/15 bg-black px-3 text-sm">
+        <input name="query" defaultValue={q.query} placeholder="Ticket, customer or phone" className="ars-input" />
+        <select name="event" defaultValue={q.event || ''} className="ars-select">
           <option value="">All events</option>
           {data.events.map(event => <option key={event.id} value={event.id}>{event.name}</option>)}
         </select>
-
-        <select name="payment" defaultValue={q.payment || ''} className="border border-white/15 bg-black px-3 text-sm">
+        <select name="payment" defaultValue={q.payment || ''} className="ars-select">
           <option value="">All payment</option>
           <option value="PAID">Paid</option>
           <option value="PENDING">Pending</option>
           <option value="FAILED">Failed</option>
           <option value="REFUNDED">Refunded</option>
         </select>
-
-        <select name="entry" defaultValue={q.entry || ''} className="border border-white/15 bg-black px-3 text-sm">
+        <select name="entry" defaultValue={q.entry || ''} className="ars-select">
           <option value="">All entry</option>
           <option value="VALID">Valid</option>
           <option value="USED">Used</option>
           <option value="PAYMENT_FAILED">Payment failed</option>
           <option value="REFUNDED">Refunded</option>
         </select>
-
-        <select name="range" defaultValue={q.range || 'ALL'} className="border border-white/15 bg-black px-3 text-sm">
+        <select name="range" defaultValue={q.range || 'ALL'} className="ars-select">
           <option value="ALL">All time</option>
           <option value="TODAY">Today</option>
           <option value="YESTERDAY">Yesterday</option>
@@ -86,43 +82,42 @@ export default async function OwnerTickets({
           <option value="30D">Last 30 days</option>
           <option value="CUSTOM">Custom</option>
         </select>
-
-        <input name="from" type="date" defaultValue={q.from} className="border border-white/15 bg-black px-3 text-sm" />
-        <input name="to" type="date" defaultValue={q.to} className="border border-white/15 bg-black px-3 text-sm" />
-
+        <input name="from" type="date" defaultValue={q.from} className="ars-input" />
+        <input name="to" type="date" defaultValue={q.to} className="ars-input" />
         <button className="ars-button md:col-span-1">Apply filters</button>
-        <a className="ars-button" href={`data:text/csv;charset=utf-8,${encodeURIComponent(csv)}`}>Export CSV</a>
+        <a className="ars-button ars-button-secondary" href={`data:text/csv;charset=utf-8,${encodeURIComponent(csv)}`}>Export CSV</a>
       </form>
     </Panel>
 
     <div className="mt-6">
-      <Panel title={`${rows.length} tickets`}>{rows.length ?
-        <div className="overflow-x-auto">
-          <table className={tableClass}>
-            <thead>
-              <tr>
-                {['Ticket ID','Customer','Event','Type','Amount','Payment','Entry','Purchased','Source'].map(header => <th key={header} className={thClass}>{header}</th>)}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map(ticket => {
-                const order = orderScopeMap.get(ticket.order_id);
-                return <tr key={ticket.id}>
-                  <td className={`${tdClass} font-mono text-xs text-white`}>{ticket.id}</td>
-                  <td className={tdClass}><strong className="text-white">{ticket.customer_name}</strong><br /><span className="text-xs">{ticket.customer_phone}</span></td>
-                  <td className={tdClass}>{ticket.event_name || '—'}</td>
-                  <td className={tdClass}>{ticket.ticket_type}</td>
-                  <td className={tdClass}>{order ? formatINR(order.subtotal / order.quantity) : '—'}</td>
-                  <td className={tdClass}>{order?.payment_status || '—'}</td>
-                  <td className={tdClass}>{ticket.status}</td>
-                  <td className={tdClass}>{new Date(order?.created_at || ticket.created_at).toLocaleString('en-IN')}</td>
-                  <td className={tdClass}>{ticket.source_code || 'Direct'}</td>
-                </tr>;
-              })}
-            </tbody>
-          </table>
-        </div>
-      : <Empty title="No tickets found" copy="Ticket sales matching these filters will appear here." />}
+      <Panel title={`${rows.length} tickets`}>
+        {rows.length ?
+          <div className="overflow-x-auto">
+            <table className={tableClass}>
+              <thead>
+                <tr>
+                  {['Ticket ID','Customer','Event','Type','Amount','Payment','Entry','Purchased','Source'].map(header => <th key={header} className={thClass}>{header}</th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map(ticket => {
+                  const order = orderScopeMap.get(ticket.order_id);
+                  return <tr key={ticket.id}>
+                    <td className={`${tdClass} font-mono text-xs text-white`}>{ticket.id}</td>
+                    <td className={tdClass}><strong className="text-white">{ticket.customer_name}</strong><br /><span className="text-xs">{ticket.customer_phone}</span></td>
+                    <td className={tdClass}>{ticket.event_name || '—'}</td>
+                    <td className={tdClass}>{ticket.ticket_type}</td>
+                    <td className={tdClass}>{order ? formatINR(order.subtotal / order.quantity) : '—'}</td>
+                    <td className={tdClass}>{order?.payment_status || '—'}</td>
+                    <td className={tdClass}>{ticket.status}</td>
+                    <td className={tdClass}>{new Date(order?.created_at || ticket.created_at).toLocaleString('en-IN')}</td>
+                    <td className={tdClass}>{ticket.source_code || 'Direct'}</td>
+                  </tr>;
+                })}
+              </tbody>
+            </table>
+          </div>
+        : <Empty title="No tickets found" copy="Ticket sales matching these filters will appear here." />}
       </Panel>
     </div>
 

@@ -1,4 +1,4 @@
-import { Bars,Empty,PageHeader,Panel,Stat,tableClass,thClass,tdClass } from '@/components/owner/OwnerUI';
+import { Bars,Empty,PageHeader,Panel,Stat,tdClass,thClass } from '@/components/owner/OwnerUI';
 import { bucketByDay, getOwnerVenueData, ownerMetrics, promoterRows } from '@/lib/owner-data';
 import { formatDate,formatINR,formatTime } from '@/lib/utils';
 import { ArrowRight,CheckCircle2 } from 'lucide-react';
@@ -46,9 +46,9 @@ export default async function OwnerHome({
       description="Business dashboard for revenue, attendance and operations."
     />
 
-    {query.error && <div className="mb-6 border border-red-900 bg-red-950/30 p-4 text-sm text-red-300">That venue is not assigned to your account.</div>}
+    {query.error && <div className="ars-card p-4 text-sm text-red-300">That venue is not assigned to your account.</div>}
 
-    <div className="grid grid-cols-2 gap-x-5 md:grid-cols-4 lg:grid-cols-8">
+    <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
       <Stat label="Total revenue" value={formatINR(metrics.gross)} accent />
       <Stat label="Tickets sold" value={metrics.sold} />
       <Stat label="Remaining" value={remainingTickets} />
@@ -59,9 +59,9 @@ export default async function OwnerHome({
       <Stat label="Settlement status" value={pending ? `${pending} pending` : 'Settled'} />
     </div>
 
-    <div className="mt-8 grid gap-6 xl:grid-cols-[1.2fr_1.2fr_0.8fr]">
+    <div className="mt-8 grid gap-6 xl:grid-cols-[1fr_1fr]">
       <Panel title="Revenue · 7 days">
-        <Bars values={trend.values} />
+        <Bars labels={trend.labels} values={trend.values} />
         <div className="mt-4 flex justify-between text-[10px] uppercase tracking-widest text-zinc-700">
           <span>{trend.labels[0]}</span>
           <span>{trend.labels[trend.labels.length - 1]}</span>
@@ -69,17 +69,17 @@ export default async function OwnerHome({
       </Panel>
 
       <Panel title="Ticket sales by hour">
-        <Bars values={Array.from({ length: 24 }, (_, hourIndex) => data.orders
+        <Bars unit="" labels={Array.from({length:24},(_,i) => `${i}:00`)} values={Array.from({ length: 24 }, (_, hourIndex) => data.orders
           .filter(order => order.payment_status === 'PAID' && new Date(order.created_at).getHours() === hourIndex)
           .reduce((sum, order) => sum + order.quantity, 0))} />
       </Panel>
 
-      <Panel title="Tonight's operations">
+      <Panel title="Tonight’s operations" className="xl:col-span-2">
         {tonight ? (
           <div className="grid gap-4">
             <p className="font-black uppercase text-white">{tonight.name}</p>
             <p className="text-xs text-zinc-600">{formatDate(tonight.date)} · {formatTime(tonight.start_time)} - {formatTime(tonight.end_time)}</p>
-            <table className={tableClass}>
+            <table className="w-full text-left text-sm">
               <tbody>
                 <tr><th className={thClass}>Sold</th><td className={tdClass}>{tonight.tickets_sold} / {tonight.ticket_capacity}</td></tr>
                 <tr><th className={thClass}>Used</th><td className={tdClass}>{data.tickets.filter(ticket => ticket.event_id === tonight.id && ticket.status === 'USED').length}</td></tr>
@@ -88,7 +88,7 @@ export default async function OwnerHome({
               </tbody>
             </table>
           </div>
-        ) : <Empty title="No event tonight" copy="Tonight’s live operations will appear when an event is scheduled." />}
+        ) : <Empty title="No event tonight" copy="Tonight&apos;s live operations will appear when an event is scheduled." />}
       </Panel>
     </div>
 
@@ -99,11 +99,11 @@ export default async function OwnerHome({
             {upcoming.slice(0, 4).map(event => (
               <div key={event.id} className="grid gap-3 py-4 sm:grid-cols-[1fr_auto_auto] sm:items-center">
                 <div>
-                  <p className="font-bold text-white">{event.name}</p>
+                  <p className="font-black uppercase text-white">{event.name}</p>
                   <p className="mt-1 text-xs text-zinc-600">{formatDate(event.date)} · {formatTime(event.start_time)}</p>
                 </div>
                 <p className="text-sm text-zinc-400">{event.tickets_sold} / {event.ticket_capacity}</p>
-                <Link href={`/owner/events/${event.id}?venue=${data.venue.id}`} className="text-xs font-bold uppercase tracking-wider text-[#d8c79e]">View event <ArrowRight className="inline" size={13}/></Link>
+                <Link href={`/owner/events/${event.id}?venue=${data.venue.id}`} className="text-xs font-bold uppercase tracking-[.16em] text-[#d8c79e]">View event <ArrowRight className="inline" size={13}/></Link>
               </div>
             ))}
           </div>
@@ -120,14 +120,14 @@ export default async function OwnerHome({
               </div>
             ))}
           </div>
-        ) : <p className="text-xs text-zinc-600">No promoter-attributed sales for this venue.</p>}
+        ) : <p className="text-xs text-zinc-500">No promoter-attributed sales for this venue.</p>}
       </Panel>
 
       <Panel title="Settlements">
-        <p className="text-xs text-zinc-600">{settled} settled</p>
-        <p className="text-sm text-zinc-600">{pending} pending</p>
-        <p className="mt-4 text-xl font-black text-white">{formatINR(settlementAmount)} pending/payable total</p>
-        <p className="mt-2 text-xs text-zinc-600">Today: {formatINR(todayRevenue)} revenue</p>
+        <p className="text-xs text-zinc-500">{settled} settled</p>
+        <p className="text-sm text-zinc-500">{pending} pending</p>
+        <p className="mt-4 text-xl font-black text-white">{formatINR(settlementAmount)} total venue allocation</p>
+        <p className="mt-2 text-xs text-zinc-500">Today: {formatINR(todayRevenue)} revenue</p>
       </Panel>
     </div>
 
@@ -138,7 +138,7 @@ export default async function OwnerHome({
             <div key={order.id} className="flex gap-3">
               <CheckCircle2 size={15} className="mt-0.5 text-emerald-500" />
               <p className="text-xs leading-5 text-zinc-500">
-                <strong className="text-zinc-300">{order.quantity} ticket{order.quantity > 1 ? 's' : ''} sold</strong>
+                <strong className="text-zinc-300">{order.quantity} ticket{order.quantity > 1 ? 's' : ''} · {order.payment_status.toLowerCase()}</strong>
                 <br />
                 {formatINR(order.subtotal)} · {new Date(order.created_at).toLocaleString('en-IN')}
               </p>
@@ -157,7 +157,7 @@ export default async function OwnerHome({
       </Panel>
     </div>
 
-    <div className="mt-8 grid grid-cols-2 gap-x-5 md:grid-cols-4">
+    <div className="mt-8 grid grid-cols-2 gap-3 md:grid-cols-4">
       <Stat label="This week" value={formatINR(metrics.weekRevenue)} />
       <Stat label="This month" value={formatINR(metrics.monthRevenue)} />
       <Stat label="ARS commission" value={formatINR(metrics.commission)} />

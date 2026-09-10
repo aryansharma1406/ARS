@@ -7,7 +7,7 @@ import { formatDate,formatINR,formatTime } from '@/lib/utils';
 export default async function OwnerEventDetail({
   params,
   searchParams,
-}: {
+}:{
   params: Promise<{ eventId: string }>;
   searchParams: Promise<{ venue?: string }>;
 }) {
@@ -70,18 +70,19 @@ export default async function OwnerEventDetail({
         <Panel title="Sales by hour">
           <Bars values={salesByHour} />
         </Panel>
+
         <Panel title="Entry performance">
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <p className="text-xs text-zinc-600">Checked-in</p>
+              <p className="text-xs text-zinc-500">Checked-in</p>
               <p className="mt-1 text-xl font-black text-white">{used}</p>
             </div>
             <div>
-              <p className="text-xs text-zinc-600">Entry rate</p>
+              <p className="text-xs text-zinc-500">Entry rate</p>
               <p className="mt-1 text-xl font-black text-emerald-400">{entryRate}%</p>
             </div>
             <div>
-              <p className="text-xs text-zinc-600">Purchased</p>
+              <p className="text-xs text-zinc-500">Purchased</p>
               <p className="mt-1 text-xl font-black text-white">{paidTickets.length}</p>
             </div>
           </div>
@@ -93,10 +94,10 @@ export default async function OwnerEventDetail({
           <div className="space-y-4">
             {ticketTypeBreakdown.map((row) => (
               <div key={row.type} className="rounded border border-white/10 p-4">
-                <p className="mb-2 text-sm font-bold uppercase text-white">{row.type}</p>
-                <p className="text-zinc-400 text-xs">Tickets issued: {row.count}</p>
-                <p className="text-zinc-400 text-xs">Used: {row.used}</p>
-                <p className="text-zinc-400 text-xs">Revenue: {formatINR(row.revenue)}</p>
+                <p className="mb-2 text-sm font-black uppercase text-white">{row.type}</p>
+                <p className="text-zinc-500 text-xs">Tickets issued: {row.count}</p>
+                <p className="text-zinc-500 text-xs">Used: {row.used}</p>
+                <p className="text-zinc-500 text-xs">Revenue: {formatINR(row.revenue)}</p>
               </div>
             ))}
           </div>
@@ -116,7 +117,7 @@ export default async function OwnerEventDetail({
               <tbody>
                 {promoters.map((p) => (
                   <tr key={p.source_code}>
-                    <td className={tdClass}>{p.promoter_name}</td>
+                    <td className={tdClass}><strong className="text-white">{p.promoter_name}</strong></td>
                     <td className={tdClass}>{p.tickets_sold}</td>
                     <td className={tdClass}>{formatINR(p.gross_entry_revenue)}</td>
                     <td className={tdClass}>{formatINR(p.commission_payable)}</td>
