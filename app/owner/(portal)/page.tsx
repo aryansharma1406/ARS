@@ -1,3 +1,4 @@
+import LiveOperations from '@/components/owner/LiveOperations';
 import { Bars,Empty,PageHeader,Panel,Stat,tdClass,thClass } from '@/components/owner/OwnerUI';
 import { bucketByDay, getOwnerVenueData, ownerMetrics, promoterRows } from '@/lib/owner-data';
 import { formatDate,formatINR,formatTime } from '@/lib/utils';
@@ -41,10 +42,12 @@ export default async function OwnerHome({
 
   return <>
     <PageHeader
-      eyebrow={`${greeting}, ${data.owner.name.split(' ')[0]}`}
+      eyebrow={data.venue.owner_name?.trim() ? `${greeting}, ${data.venue.owner_name.trim()}` : `${greeting} / Venue operations`}
       title={data.venue.name}
       description="Business dashboard for revenue, attendance and operations."
     />
+
+    <LiveOperations venueId={data.venue.id}/>
 
     {query.error && <div className="ars-card p-4 text-sm text-red-300">That venue is not assigned to your account.</div>}
 

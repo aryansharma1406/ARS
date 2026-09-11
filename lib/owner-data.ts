@@ -221,7 +221,7 @@ export function customersForVenue(data: OwnerVenueData, range: DateFilter = 'ALL
   paidTickets.forEach(ticket => {
     const key = ticket.customer_email.toLowerCase();
     if (!eventAttendance.has(key)) eventAttendance.set(key, new Set());
-    if (ticket.event_id) eventAttendance.get(key)?.add(ticket.event_id);
+    if (ticket.event_id && ticket.status === 'USED') eventAttendance.get(key)?.add(ticket.event_id);
   });
 
   const map = new Map<string, {
@@ -248,7 +248,7 @@ export function customersForVenue(data: OwnerVenueData, range: DateFilter = 'ALL
       visits: 0,
       tickets: 0,
       spent: 0,
-      lastVisit: order.created_at,
+      lastVisit: '',
       used: 0,
       eventsAttended: 0,
       averageSpend: 0,
@@ -256,10 +256,10 @@ export function customersForVenue(data: OwnerVenueData, range: DateFilter = 'ALL
       attendanceHistory: [],
     };
 
-    row.visits += 1;
+    row.visits = eventAttendance.get(key)?.size || 0;
     row.tickets += order.quantity;
     row.spent += order.subtotal;
-    if (order.created_at > row.lastVisit) row.lastVisit = order.created_at;
+
     row.averageSpend = row.tickets ? row.spent / row.tickets : 0;
     row.eventsAttended = eventAttendance.get(key)?.size || 0;
     map.set(key, row);
@@ -269,6 +269,7 @@ export function customersForVenue(data: OwnerVenueData, range: DateFilter = 'ALL
     const row = map.get(ticket.customer_email.toLowerCase());
     if (!row) return;
     row.used += 1;
+    if (ticket.scanned_at && ticket.scanned_at > row.lastVisit) row.lastVisit = ticket.scanned_at;
   });
 
   paidTickets.forEach(ticket => {
@@ -286,10 +287,10 @@ export function customersForVenue(data: OwnerVenueData, range: DateFilter = 'ALL
     };
 
     customer.purchaseHistory.push(row);
-    if (ticket.status === 'USED') customer.attendanceHistory.push(row);
+    if (ticket.status === 'USED' && ticket.scanned_at) customer.attendanceHistory.push({...row, date: ticket.scanned_at});
   });
 
-  return [...map.values()].sort((a, b) => new Date(b.lastVisit).getTime() - new Date(a.lastVisit).getTime());
+  return [...map.values()].sort((a, b) => (Date.parse(b.lastVisit) || 0) - (Date.parse(a.lastVisit) || 0));
 }
 
 export async function promoterRows(data: OwnerVenueData) {

@@ -1,3 +1,4 @@
+import { Stat } from '@/components/owner/OwnerUI';
 import { Empty,PageHeader,Panel,tableClass,tdClass,thClass } from '@/components/owner/OwnerUI';
 import { customersForVenue, getOwnerVenueData } from '@/lib/owner-data';
 import { formatINR } from '@/lib/utils';
@@ -18,6 +19,8 @@ export default async function OwnerCustomers({
       description="Read-only guest profile with purchase and attendance history for the selected venue."
     />
 
+    <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-3"><Stat label="Purchasing accounts" value={customers.length}/><Stat label="Repeat attendees" value={customers.filter(customer=>customer.eventsAttended>1).length}/><Stat label="Checked-in events / accounts" value={customers.reduce((sum,customer)=>sum+customer.eventsAttended,0)}/></div>
+    <p className="mb-5 text-xs leading-6 text-zinc-500">Visits count distinct events with a successful check-in, not bookings. Customer profiles are grouped by booking email; group passes are not proof of separate named individuals. Total spend uses discounted ticket revenue, excluding fees, and includes any paid test orders in this database.</p>
     <Panel title="Customer 360">
       {customers.length ?
         <div className="overflow-x-auto">

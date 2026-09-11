@@ -2,7 +2,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 export async function buildSetupSql() {
-  const migrations = await Promise.all(['0001_existing_schema.sql', '0002_production_security.sql', '0003_venue_owner_assignment.sql', '0004_venue_management.sql', '0005_promoter_code_verification.sql', '0006_customer_coupons.sql', '0007_promoter_management.sql', '0008_staff_invitations.sql', '0009_public_catalog_permissions.sql'].map(name => readFile(new URL(`../supabase/migrations/${name}`, import.meta.url), 'utf8')));
+  const migrations = await Promise.all(['0001_existing_schema.sql', '0002_production_security.sql', '0003_venue_owner_assignment.sql', '0004_venue_management.sql', '0005_promoter_code_verification.sql', '0006_customer_coupons.sql', '0007_promoter_management.sql', '0008_staff_invitations.sql', '0009_public_catalog_permissions.sql', '0010_owner_operating_system.sql'].map(name => readFile(new URL(`../supabase/migrations/${name}`, import.meta.url), 'utf8')));
   return `-- ARS: paste this entire generated file into your empty project's Supabase SQL Editor and run once.
 -- Generated from the canonical numbered migrations. Do not edit this copy.
 -- No seed data, passwords, API keys, or privileged accounts are included.

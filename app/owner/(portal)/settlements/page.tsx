@@ -1,3 +1,4 @@
+import SettlementStatements from '@/components/owner/SettlementStatements';
 import Link from 'next/link';
 import { Empty,PageHeader,Panel,tableClass,tdClass,thClass,Stat } from '@/components/owner/OwnerUI';
 import { getOwnerVenueData, ownerMetrics } from '@/lib/owner-data';
@@ -105,14 +106,15 @@ export default async function OwnerSettlements({
       </Panel>
     </div>
 
-    <Panel title="Settlement history">
+    <SettlementStatements venueId={data.venue.id}/>
+    <Panel title="Settlement history / recorded and estimated">
       {rows.length ? (
         <div className="overflow-x-auto">
           <table className={tableClass}>
             <thead>
               <tr>
                 <th className={thClass}>Status</th>
-                <th className={thClass}>Settlement date</th>
+                <th className={thClass}>Record / estimate date</th>
                 <th className={thClass}>Event</th>
                 <th className={thClass}>Venue payable</th>
                 <th className={thClass}>Gross</th>
@@ -125,7 +127,7 @@ export default async function OwnerSettlements({
             <tbody>
               {rows.map(row => (
                 <tr key={row.id}>
-                  <td className={tdClass}>{row.status}</td>
+                  <td className={tdClass}>{row.id.startsWith('estimate-') ? 'ESTIMATE / NOT SETTLED' : row.status}</td>
                   <td className={tdClass}>{row.settlementDate}</td>
                   <td className={tdClass}><Link className="hover:text-accent-cyan" href={`/owner/events/${row.event_id}?venue=${row.venue_id}`}>{row.event_name || 'Event detail'}</Link></td>
                   <td className={tdClass}>{formatINR(row.venue_amount)}</td>

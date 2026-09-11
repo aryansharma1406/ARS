@@ -1,3 +1,4 @@
+import { LiveSearchProvider, CatalogSearchInput } from '@/components/LiveSearch';
 import Link from 'next/link';
 import UpcomingEvents from '@/components/UpcomingEvents';
 
@@ -26,7 +27,6 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
   const categoryFilter = params.category || '';
   const sourceCode = params.source || '';
   const referralScope = sourceCode ? await getReferralScope(sourceCode) : null;
-  const searchQuery = (params.query || '').toLowerCase();
   const priceMax = params.price ? parseInt(params.price, 10) : 10000;
 
   const categories = [...new Set(events.map(event => event.category))].sort();
@@ -42,13 +42,6 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
     if (categoryFilter && !evt.category.toLowerCase().includes(categoryFilter.toLowerCase())) {
       return false;
     }
-    if (searchQuery && !(
-      evt.name.toLowerCase().includes(searchQuery) || 
-      evt.description.toLowerCase().includes(searchQuery) ||
-      evt.venue_name?.toLowerCase().includes(searchQuery)
-    )) {
-      return false;
-    }
     if (evt.ticket_price > priceMax) {
       return false;
     }
@@ -56,7 +49,7 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
   });
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 space-y-8">
+    <LiveSearchProvider key={JSON.stringify(params)} initialQuery={params.query || ''}><div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 space-y-8">
       <section className="space-y-4 border-b border-white/10 pb-6">
         <div className="eyebrow">Find your night</div>
         <h1 className="text-6xl sm:text-8xl font-black uppercase text-white">Events</h1>
@@ -71,16 +64,7 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
         <form method="GET" action="/events" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {sourceCode && <input type="hidden" name="source" value={sourceCode} />}
 
-          <div className="relative lg:col-span-2">
-            <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              name="query"
-              defaultValue={params.query || ''}
-              aria-label="Search events" placeholder="Search event or venue"
-              className="ars-input !pl-10"
-            />
-          </div>
+          <CatalogSearchInput />
 
           <div className="relative">
             <MapPin className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -122,6 +106,6 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
 
       {issue ? <CatalogUnavailable issue={issue}/> : <UpcomingEvents events={filteredEvents} sourceCode={sourceCode} initialNow={Date.now()} />}
 
-    </div>
+    </div></LiveSearchProvider>
   );
 }

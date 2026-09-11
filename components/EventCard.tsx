@@ -1,4 +1,5 @@
 'use client';
+import { SearchHighlight } from '@/components/LiveSearch';
 
 import { Event } from '@/lib/types';
 import { formatDate,formatINR,formatTime } from '@/lib/utils';
@@ -17,10 +18,10 @@ export default function EventCard({ event, sourceCode, featured = false }: { eve
       <Link href={detailUrl} className="event-image relative block aspect-[4/5] overflow-hidden">
         <CatalogImage src={event.image} alt={event.name} className="object-cover transition duration-700 group-hover:scale-105" sizes="(max-width:768px) 100vw,(max-width:1200px) 50vw,33vw" />
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/10 to-transparent" />
-        <div className="absolute left-4 top-4 ars-chip px-3 py-1 text-[10px]">{event.category}</div>
+        <div className="absolute left-4 top-4 ars-chip px-3 py-1 text-[10px]"><SearchHighlight>{event.category}</SearchHighlight></div>
         <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-6">
-          <p className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[.1em] text-zinc-300"><MapPin size={14} /> {event.venue_name}</p>
-          <h3 className="event-title text-3xl font-black uppercase leading-none text-white">{event.name}</h3>
+          <p className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[.1em] text-zinc-300"><MapPin size={14} /> <SearchHighlight>{event.venue_name}</SearchHighlight></p>
+          <h3 className="event-title text-3xl font-black uppercase leading-none text-white"><SearchHighlight>{event.name}</SearchHighlight></h3>
         </div>
       </Link>
       <div className="event-copy p-5 sm:p-6">

@@ -78,13 +78,13 @@ export default function DigitalTicketCard({ ticket, event }: DigitalTicketCardPr
       {/* Pass Card Container */}
       <div 
         ref={cardRef}
-        className="glass-panel rounded-sm border border-[#cbb88a]/40 overflow-hidden relative"
+        className="rounded-2xl border border-[#cbb88a]/40 overflow-hidden relative bg-[radial-gradient(ellipse_at_top_right,rgba(203,184,138,.14),transparent_60%),linear-gradient(135deg,#151510,#080808)] shadow-[0_24px_80px_rgba(0,0,0,.45)]"
       >
         {/* Decorative Neon Header Header */}
-        <div className="bg-[#e9e4d9] p-5 flex flex-wrap gap-3 items-center justify-between text-black">
+        <div className="border-b border-[#cbb88a]/30 p-5 sm:p-7 flex flex-wrap gap-3 items-center justify-between text-[#e2d4ae]">
           <div className="flex items-center gap-2">
             <Sparkles className="w-5 h-5" />
-            <span className="font-display font-black tracking-[.18em] text-lg">ARS PASS</span>
+            <span className="font-display font-black tracking-[.18em] text-lg">ARS / DIGITAL ACCESS</span>
           </div>
           {renderStatusBadge()}
         </div>
@@ -102,8 +102,9 @@ export default function DigitalTicketCard({ ticket, event }: DigitalTicketCardPr
           </div>
 
           {/* QR Code Section */}
-          <div className="pass-perforation bg-surface/90 px-3 py-8 flex flex-col items-center justify-center space-y-3 relative">
-            <div className="bg-white p-5 rounded-sm">
+          <div className="pass-perforation border-y border-dashed border-[#cbb88a]/30 px-3 py-8 flex flex-col items-center justify-center space-y-4 relative">
+            <p className="text-[10px] uppercase tracking-[.24em] text-[#e2d4ae]">Your personal entry credential</p>
+            <div className="bg-white p-6 rounded-xl ring-1 ring-[#cbb88a]/50 ring-offset-4 ring-offset-[#11110f]">
               <QRCodeSVG
                 value={ticket.qr_token}
                 size={180}
@@ -113,10 +114,10 @@ export default function DigitalTicketCard({ ticket, event }: DigitalTicketCardPr
             </div>
             
             <div className="space-y-2">
-              <code className="block max-w-full text-xs font-mono font-bold text-accent-cyan tracking-wider bg-card px-3 py-1 rounded-md border border-border">
+              <code className="block max-w-full break-all text-center text-[10px] font-mono text-zinc-500 px-3 py-1">
                 {ticket.qr_token}
               </code>
-              <span className="block text-[10px] text-gray-400">
+              <span className="block break-all text-center text-[10px] text-gray-400">
                 Ticket ID: {ticket.id}
               </span>
             </div>
@@ -154,9 +155,9 @@ export default function DigitalTicketCard({ ticket, event }: DigitalTicketCardPr
             </div>
 
             <div>
-              <span className="text-gray-400 block mb-0.5">Promoter Source</span>
+              <span className="text-gray-400 block mb-0.5">Admission</span>
               <strong className="text-accent-pink text-sm block">
-                {ticket.source_code || 'Direct Website'}
+                One guest / Single entry
               </strong>
             </div>
           </div>

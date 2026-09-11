@@ -1,4 +1,6 @@
 'use client';
+import { useLiveSearch } from '@/components/LiveSearch';
+import { matchesSearch } from '@/lib/search';
 
 import { useEffect, useState } from 'react';
 import type { Event } from '@/lib/types';
@@ -7,6 +9,7 @@ import EventCard from '@/components/EventCard';
 import { Calendar } from 'lucide-react';
 
 export default function UpcomingEvents({ events, sourceCode, initialNow }: { events: Event[]; sourceCode: string; initialNow: number }) {
+  const { query } = useLiveSearch();
   const [now, setNow] = useState(initialNow);
   useEffect(() => {
     const current = Date.now();
@@ -16,7 +19,7 @@ export default function UpcomingEvents({ events, sourceCode, initialNow }: { eve
     window.addEventListener('focus', refresh);
     return () => { window.clearTimeout(timer); window.removeEventListener('focus', refresh); };
   }, [events, now]);
-  const visible = events.filter(event => event.published && ['upcoming', 'live'].includes(eventPhase(event, now)))
+  const visible = events.filter(event => matchesSearch(query, [event.name, event.venue_name, event.description, event.category]) && event.published && ['upcoming', 'live'].includes(eventPhase(event, now)))
     .sort((a, b) => eventWindow(a).start - eventWindow(b).start);
 
   if (!visible.length) return (
@@ -28,7 +31,7 @@ export default function UpcomingEvents({ events, sourceCode, initialNow }: { eve
   );
   return (
     <section className="space-y-8">
-      <p className="eyebrow">The line-up / {visible.length} event{visible.length === 1 ? '' : 's'}</p>
+      <p role="status" className="eyebrow">The line-up / {visible.length} event{visible.length === 1 ? '' : 's'}</p>
       <EventCard event={visible[0]} sourceCode={sourceCode} featured />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">{visible.slice(1).map(event => <EventCard key={event.id} event={event} sourceCode={sourceCode} />)}</div>
     </section>

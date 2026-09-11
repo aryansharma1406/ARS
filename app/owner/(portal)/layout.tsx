@@ -1,5 +1,13 @@
 import OwnerShell from '@/components/owner/OwnerShell';
 import { requireOwner } from '@/lib/owner-auth';
-import { getVenues } from '@/lib/store';
+import { dbError } from '@/lib/api';
+import type { Venue } from '@/lib/types';
 
-export default async function OwnerPortalLayout({children}:{children:React.ReactNode}){const owner=await requireOwner();const venues=(await getVenues()).filter(v=>owner.venueIds.includes(v.id));return <OwnerShell venues={venues} ownerName={owner.name}>{children}</OwnerShell>}
+export default async function OwnerPortalLayout({children}:{children:React.ReactNode}) {
+  const owner = await requireOwner();
+  // Contact details are private business data, not part of the public venue catalog.
+  const { data, error } = await owner.client.rpc('business_venues');
+  dbError(error);
+  const venues = ((data || []) as Venue[]).filter(venue => owner.venueIds.includes(venue.id));
+  return <OwnerShell venues={venues} ownerName={owner.name}>{children}</OwnerShell>;
+}

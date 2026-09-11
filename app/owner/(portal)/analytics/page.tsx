@@ -1,3 +1,4 @@
+import MarketingIntelligence from '@/components/owner/MarketingIntelligence';
 import Link from 'next/link';
 import { Empty,PageHeader,Panel,Stat,tableClass,tdClass,thClass } from '@/components/owner/OwnerUI';
 import AnalyticsChart from '@/components/owner/AnalyticsChart';
@@ -49,7 +50,7 @@ export default async function OwnerAnalytics({
   const customerRows = customersForVenue(data, resolvedRange as any, now);
   const returningCustomers = customerRows.filter(c => c.visits > 1).length;
 
-  const promoterMetrics = await promoterRows(data);
+  const promoterMetrics = (await promoterRows({...data,orders:rows,tickets:paidTickets})).sort((a,b)=>b.gross_entry_revenue-a.gross_entry_revenue);
   const topEventByRevenue = data.events
     .map(event => ({
       name: event.name,
@@ -136,6 +137,8 @@ export default async function OwnerAnalytics({
         <p className="mt-2 font-black text-white">{customerRows.length ? `${Math.round((returningCustomers / customerRows.length) * 100)}%` : '0%'}</p>
       </Panel>
     </div>
+
+    <div className="mt-6"><MarketingIntelligence venueId={data.venue.id}/></div>
 
     {query.from || query.to ?
       <p className="mt-6 text-xs text-zinc-500">Custom filter is in use. Showing events and customers from {query.from || 'start'} to {query.to || 'end'}.</p>

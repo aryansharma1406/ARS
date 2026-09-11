@@ -1,3 +1,4 @@
+import FunnelObservation from '@/components/FunnelObservation';
 import CheckoutForm from '@/components/CheckoutForm';
 import { requirePage,requireRole } from '@/lib/auth';
 import { getEventById } from '@/lib/store';
@@ -48,6 +49,7 @@ export default async function CheckoutPage({ params, searchParams }: CheckoutPag
       </section>
 
       <div className="flex flex-wrap gap-6 border-y border-white/10 py-5 text-[10px] font-bold uppercase tracking-[.15em] text-zinc-400"><span>01 / Review your access</span><span>02 / Secure checkout</span><span>03 / Digital QR pass</span></div>
+      <FunnelObservation eventId={event.id} kind="checkout_start" source={referralCode}/>
       <CheckoutForm key={event.id} event={event} accountEmail={customer.email} initialQuantity={quantity} sourceCode={referralCode} testPayment={testPaymentsEnabled()} />
     </div>
   );

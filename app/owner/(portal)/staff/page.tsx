@@ -1,3 +1,4 @@
+import StaffActivity from '@/components/owner/StaffActivity';
 import { PageHeader,Panel } from '@/components/owner/OwnerUI';
 import StaffManager from '@/components/owner/StaffManager';
 import { getOwnerVenueData } from '@/lib/owner-data';
@@ -17,5 +18,6 @@ export default async function OwnerStaff({ searchParams }: { searchParams: Promi
     <Panel title="Staff access and invitations">
       <StaffManager key={data.venue.id} venueId={data.venue.id} events={data.events} assignments={assignments} />
     </Panel>
+    <StaffActivity venueId={data.venue.id}/>
   </>;
 }

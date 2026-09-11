@@ -1,3 +1,4 @@
+import FunnelObservation from '@/components/FunnelObservation';
 import EventTicketSelector from '@/components/EventTicketSelector';
 import { getEventById } from '@/lib/store';
 import { formatDate,formatTime } from '@/lib/utils';
@@ -36,6 +37,7 @@ export default async function EventDetailPage({ params, searchParams }: EventDet
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-8 pb-28 lg:pb-8">
+      <FunnelObservation eventId={event.id} kind="event_view" source={sourceCode}/>
       <Link
         href={`/events${sourceCode ? `?source=${encodeURIComponent(sourceCode)}` : ''}`}
         className="ars-button ars-button-secondary inline-flex w-fit"

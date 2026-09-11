@@ -1,3 +1,4 @@
+import PromoterEventPerformance from '@/components/owner/PromoterEventPerformance';
 import { Empty,PageHeader,Panel,Stat,tableClass,tdClass,thClass } from '@/components/owner/OwnerUI';
 import { getOwnerVenueData, promoterRows } from '@/lib/owner-data';
 import { formatINR } from '@/lib/utils';
@@ -21,7 +22,7 @@ export default async function OwnerPromoters({
     />
 
     <div className="grid grid-cols-2 gap-x-5 lg:grid-cols-4">
-      <Stat label="Active codes" value={rows.length} />
+      <Stat label="Assigned codes" value={rows.length} />
       <Stat label="Attributed sales" value={totalTickets} />
       <Stat label="Attributed revenue" value={formatINR(totalRevenue)} />
       <Stat label="Commission payable" value={formatINR(rows.reduce((sum,row)=>sum+row.commission_payable,0))} accent />
@@ -45,7 +46,7 @@ export default async function OwnerPromoters({
                 <td className={tdClass}>{row.entries}</td>
                 <td className={tdClass}>{formatINR(row.commission_payable)}</td>
                 <td className={tdClass}>{row.conversion}%</td>
-                <td className={tdClass}>{Math.min(rows.length, row.tickets_sold)}</td>
+                <td className={tdClass}>{new Set(data.orders.filter(order=>order.source_code===row.source_code && order.payment_status==='PAID').map(order=>order.event_id)).size}</td>
               </tr>)}
             </tbody>
           </table>
@@ -53,6 +54,7 @@ export default async function OwnerPromoters({
       : <Empty title="No promoters yet" copy="Promoters assigned to tracked sources will appear here." />}
     </Panel>
 
+    <PromoterEventPerformance venueId={data.venue.id}/>
     <div className="mt-6">
       <Panel title="Attribution chain safety">
         <p className="text-sm text-zinc-500">Order source → Ticket → Scan → Settlement attribution remains system-managed.</p>

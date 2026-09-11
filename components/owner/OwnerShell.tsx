@@ -23,7 +23,9 @@ const items = [
   ['Overview', '/owner', LayoutDashboard],
   ['Events', '/owner/events', CalendarDays],
   ['Tickets', '/owner/tickets', Ticket],
+  ['Guest list', '/owner/guests', Users],
   ['Customers', '/owner/customers', Users],
+  ['Marketing', '/owner/marketing', Megaphone],
   ['Promoters', '/owner/promoters', Megaphone],
   ['Analytics', '/owner/analytics', BarChart3],
   ['Settlements', '/owner/settlements', CreditCard],
@@ -47,6 +49,7 @@ export default function OwnerShell({
   const selected = params.get('venue') || venues[0]?.id;
   const [pending, startTransition] = useTransition();
   const [displayedVenue, setDisplayedVenue] = useOptimistic(selected);
+  const venueContactName = venues.find(venue => venue.id === displayedVenue)?.owner_name?.trim();
 
   function switchVenue(id: string) {
     if (id === selected) return;
@@ -112,8 +115,9 @@ export default function OwnerShell({
           </div>
 
           <div className="text-right">
-            <p className="text-xs text-zinc-500">Signed in as</p>
-            <p className="text-sm font-semibold">{ownerName}</p>
+            <p className="text-xs text-zinc-500">Venue owner</p>
+            <p className="text-sm font-semibold">{venueContactName || 'Owner name not set'}</p>
+            <p className="mt-1 text-[10px] text-zinc-500">Account: {ownerName}</p>
             <form action="/api/owner/logout" method="post" className="lg:hidden">
               <button className="mt-2 text-xs text-zinc-400">Sign out</button>
             </form>

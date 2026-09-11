@@ -1,5 +1,9 @@
 'use client';
 
+import { LiveSearchInput, SearchHighlight } from '@/components/LiveSearch';
+import { matchesSearch } from '@/lib/search';
+
+
 import { EmptyState, PageLoading } from '@/components/PageState';
 
 import { getTickets } from '@/lib/store';
@@ -29,16 +33,7 @@ export default function AdminTicketsPage() {
     } finally { setLoading(false); }
   };
 
-  const filteredTickets = tickets.filter(t => {
-    const q = search.toLowerCase();
-    return (
-      t.id.toLowerCase().includes(q) ||
-      t.customer_name.toLowerCase().includes(q) ||
-      t.customer_email.toLowerCase().includes(q) ||
-      (t.source_code && t.source_code.toLowerCase().includes(q)) ||
-      t.qr_token.toLowerCase().includes(q)
-    );
-  });
+  const filteredTickets = tickets.filter(t => matchesSearch(search, [t.id, t.order_id, t.customer_name, t.customer_email, t.customer_phone, t.event_name, t.venue_name, t.source_code, t.qr_token, t.ticket_type]));
 
   const handleExportCSV = () => {
     const exportData = filteredTickets.map(t => ({
@@ -72,10 +67,8 @@ export default function AdminTicketsPage() {
         </button>
       </div>
 
-      <div className="relative max-w-md">
-        <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-        <input type="text" placeholder="Filter by ticket id, customer, source" value={search} onChange={e => setSearch(e.target.value)} className="ars-input !pl-10" />
-      </div>
+      <LiveSearchInput value={search} onChange={setSearch} placeholder="Search guest, event, venue, booking or pass" className="max-w-xl"/>
+      <p role="status" className="text-xs text-zinc-500">{filteredTickets.length} matching tickets</p>
 
       <div className="ars-card overflow-hidden">
         <div className="overflow-x-auto">
@@ -93,11 +86,11 @@ export default function AdminTicketsPage() {
             <tbody className="divide-y divide-white/5">
               {filteredTickets.map((t) => (
                 <tr key={t.id} className="hover:bg-black/40 transition-colors">
-                  <td className="px-6 py-4 font-mono font-black text-white"><span className="block text-accent-cyan">{t.qr_token}</span><span className="text-[10px] text-zinc-500 font-normal">ID: {t.id}</span></td>
-                  <td className="px-6 py-4"><strong className="text-white block">{t.customer_name}</strong><span className="text-[11px] text-zinc-400 block">{t.customer_email}</span><span className="text-[11px] text-zinc-500">{t.customer_phone}</span></td>
-                  <td className="px-6 py-4"><strong className="text-white block">{t.event_name}</strong><span className="text-[11px] text-accent-purple">{t.venue_name}</span></td>
+                  <td className="px-6 py-4 font-mono font-black text-white"><span className="block text-accent-cyan"><SearchHighlight query={search}>{t.qr_token}</SearchHighlight></span><span className="text-[10px] text-zinc-500 font-normal">Booking: <SearchHighlight query={search}>{t.order_id}</SearchHighlight><br/>ID: <SearchHighlight query={search}>{t.id}</SearchHighlight></span></td>
+                  <td className="px-6 py-4"><strong className="text-white block"><SearchHighlight query={search}>{t.customer_name}</SearchHighlight></strong><span className="text-[11px] text-zinc-400 block"><SearchHighlight query={search}>{t.customer_email}</SearchHighlight></span><span className="text-[11px] text-zinc-500"><SearchHighlight query={search}>{t.customer_phone}</SearchHighlight></span></td>
+                  <td className="px-6 py-4"><strong className="text-white block"><SearchHighlight query={search}>{t.event_name}</SearchHighlight></strong><span className="text-[11px] text-accent-purple"><SearchHighlight query={search}>{t.venue_name}</SearchHighlight></span></td>
                   <td className="px-6 py-4">
-                    {t.source_code ? <span className="px-2.5 py-1 rounded bg-accent-pink/20 border border-accent-pink/40 text-accent-pink font-mono text-[11px]">{t.source_code}</span> : <span className="text-zinc-500 italic">Direct organic</span>}
+                    {t.source_code ? <span className="px-2.5 py-1 rounded bg-accent-pink/20 border border-accent-pink/40 text-accent-pink font-mono text-[11px]"><SearchHighlight query={search}>{t.source_code}</SearchHighlight></span> : <span className="text-zinc-500 italic">Direct organic</span>}
                   </td>
                   <td className="px-6 py-4">
                     <span className={`px-2.5 py-1 rounded-full text-[10px] font-black inline-flex items-center gap-1 ${
