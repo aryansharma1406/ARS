@@ -4,8 +4,9 @@ import { EmptyState, PageLoading } from '@/components/PageState';
 
 import { addEvent,getEvents,getVenues,updateEvent } from '@/lib/store';
 import { Event,Venue } from '@/lib/types';
-import { formatINR } from '@/lib/utils';
-import { Eye,EyeOff,Plus } from 'lucide-react';
+import { eventPhase,matchesEventStatus } from '@/lib/event-schedule';
+import { formatDate,formatINR,formatTime } from '@/lib/utils';
+import { CalendarDays,Clock,Eye,EyeOff,Plus } from 'lucide-react';
 import CatalogImage from '@/components/CatalogImage';
 import React,{ useCallback,useEffect,useState } from 'react';
 
@@ -13,6 +14,13 @@ export default function AdminEventsPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [events, setEvents] = useState<Event[]>([]);
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [scheduleNow, setScheduleNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = window.setInterval(() => setScheduleNow(Date.now()), 30000);
+    return () => window.clearInterval(timer);
+  }, []);
+  const visibleEvents = events.filter(event => matchesEventStatus(event, statusFilter, scheduleNow));
   const [venues, setVenues] = useState<Venue[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -78,8 +86,14 @@ export default function AdminEventsPage() {
         <button onClick={() => setIsModalOpen(true)} className="ars-button flex items-center gap-2"><Plus className="w-4 h-4" /> Create New Event</button>
       </div>
 
+      <div className="flex flex-wrap gap-2" aria-label="Event status filters">
+        {['all', 'upcoming', 'live', 'past', 'published', 'draft'].map(status => (
+          <button key={status} type="button" aria-pressed={statusFilter === status} onClick={() => setStatusFilter(status)} className={`ars-button ${statusFilter === status ? '' : 'ars-button-secondary'}`}>{status}</button>
+        ))}
+      </div>
+      {events.length > 0 && !visibleEvents.length && <EmptyState title="No matching events" copy="Choose another status to view your events." />}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {events.map((evt) => (
+        {visibleEvents.map((evt) => (
           <div key={evt.id} className="ars-card rounded-3xl overflow-hidden flex flex-col justify-between">
             <div className="relative h-44 w-full">
               <CatalogImage src={evt.image} alt={evt.name} className="object-cover" />
@@ -98,7 +112,22 @@ export default function AdminEventsPage() {
                 <p className="text-xs text-accent-purple font-semibold mt-0.5">{evt.venue_name || "Club Xtreme, Tito's Lane"}</p>
                 <p className="text-xs text-zinc-400 mt-2 line-clamp-2">{evt.description}</p>
               </div>
-              <div className="grid grid-cols-2 gap-2 text-xs p-3 rounded-xl bg-black/40 border border-white/10">
+                  <div className="space-y-2 border-t border-white/10 pt-3 text-sm">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-accent-purple">{eventPhase(evt, scheduleNow)} / IST</p>
+                    <div className="flex items-center gap-2 text-zinc-200">
+                      <CalendarDays className="h-4 w-4 shrink-0 text-accent-purple" aria-hidden="true" />
+                      <span>{evt.date ? formatDate(`${evt.date}T12:00:00`) : 'Date to be confirmed'}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-zinc-400">
+                      <Clock className="h-4 w-4 shrink-0 text-accent-purple" aria-hidden="true" />
+                      <span>
+                        {evt.start_time ? formatTime(evt.start_time) : 'Time to be confirmed'}
+                        {evt.end_time && ` - ${formatTime(evt.end_time)}`}
+                        {evt.start_time && evt.end_time && evt.end_time.slice(0,5) < evt.start_time.slice(0,5) && ' (next day)'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs p-3 rounded-xl bg-black/40 border border-white/10">
                 <div><span className="text-zinc-500 block text-[10px]">Entry price</span><strong className="text-white text-sm">{formatINR(evt.ticket_price)}</strong></div>
                 <div><span className="text-zinc-500 block text-[10px]">Capacity sold</span><strong className="text-accent-pink text-sm">{evt.tickets_sold} / {evt.ticket_capacity}</strong></div>
               </div>

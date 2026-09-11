@@ -1,6 +1,7 @@
 import Link from 'next/link';
-import { Bars,Empty,PageHeader,Panel,Stat,tableClass,tdClass,thClass } from '@/components/owner/OwnerUI';
-import { bucketByDay, customersForVenue, filterOrdersByRange, getOwnerVenueData, ownerMetrics, promoterRows } from '@/lib/owner-data';
+import { Empty,PageHeader,Panel,Stat,tableClass,tdClass,thClass } from '@/components/owner/OwnerUI';
+import AnalyticsChart from '@/components/owner/AnalyticsChart';
+import { bucketByDay, customersForVenue, filterOrdersByRange, getOwnerVenueData, ownerMetrics, promoterRows, resolveDateRange } from '@/lib/owner-data';
 import { formatINR } from '@/lib/utils';
 
 type AnalyticsRange = 'ALL' | 'TODAY' | 'YESTERDAY' | '7D' | '30D' | 'CUSTOM';
@@ -23,11 +24,16 @@ export default async function OwnerAnalytics({
   const usedTickets = paidTickets.filter(ticket => ticket.status === 'USED');
   const metrics = ownerMetrics(data, resolvedRange as any, now);
 
-  const revenueDays = bucketByDay(paid, now, range === '30D' ? 30 : 7, resolvedRange as any);
+  const chartEnd = new Date(now);
+  if (range === 'YESTERDAY') chartEnd.setDate(chartEnd.getDate() - 1);
+  const revenueDays = bucketByDay(paid, chartEnd, range === '30D' ? 30 : ['TODAY', 'YESTERDAY'].includes(range) ? 1 : 7, 'ALL');
   const salesByDay = revenueDays.values;
 
+  const scanWindow = resolveDateRange(resolvedRange as any, now);
+  const scannedInRange = data.tickets.filter(ticket => ticket.status === 'USED' && ticket.scanned_at && new Date(ticket.scanned_at) >= scanWindow.from && new Date(ticket.scanned_at) <= scanWindow.to);
+  const scanHour = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Kolkata', hour: '2-digit', hourCycle: 'h23' });
   const attendanceByHour = Array.from({ length: 24 }, (_, hour) => {
-    const hourTickets = usedTickets.filter(ticket => new Date(ticket.scanned_at || ticket.created_at).getHours() === hour);
+    const hourTickets = scannedInRange.filter(ticket => Number(scanHour.format(new Date(ticket.scanned_at!))) === hour);
     return hourTickets.length;
   });
 
@@ -81,8 +87,8 @@ export default async function OwnerAnalytics({
     </div>
 
     <div className="mt-6 grid gap-6 xl:grid-cols-2">
-      <Panel title={`Revenue trend · ${range === 'CUSTOM' ? `${customFrom} to ${customTo}` : range}`}><Bars labels={revenueDays.labels} values={salesByDay} /></Panel>
-      <Panel title="Peak entry times"><Bars unit="" labels={Array.from({length:24},(_,i) => `${i}:00`)} values={attendanceByHour} /></Panel>
+      <Panel title={`Revenue trend · ${range === 'CUSTOM' ? `${customFrom} to ${customTo}` : range}`}><AnalyticsChart kind="revenue" labels={revenueDays.labels} values={salesByDay} /></Panel>
+      <Panel title="Peak entry times"><AnalyticsChart kind="entries" labels={Array.from({length:24},(_,i) => `${i % 12 || 12}${i < 12 ? 'am' : 'pm'}`)} values={attendanceByHour} /></Panel>
     </div>
 
     <div className="mt-6 grid gap-6 xl:grid-cols-2">

@@ -5,7 +5,7 @@ import { supabaseConfig } from './supabase';
 import { dbError } from './api';
 import type { Event, Venue } from './types';
 
-export type CatalogIssue = 'setup' | 'unavailable' | null;
+export type CatalogIssue = 'setup' | 'permissions' | 'unavailable' | null;
 const PUBLIC_CATALOG_TIMEOUT_MS = 10000;
 
 // Public browsing may display an outage state. Protected data access still throws.
@@ -35,8 +35,9 @@ export async function getPublicCatalog(): Promise<{events:Event[];venues:Venue[]
     return {events, venues, issue:null};
   } catch (error) {
     if (!(error instanceof AuthError) || ![403,503].includes(error.status)) throw error;
-    const issue = error.status === 403 || ['DATABASE_SETUP_REQUIRED','AUTH_UNAVAILABLE'].includes(error.code) ? 'setup' : 'unavailable';
-    console.error('[ARS catalog]', {code:error.code});
+    const issue = error.status === 403 ? 'permissions' : ['DATABASE_SETUP_REQUIRED','AUTH_UNAVAILABLE'].includes(error.code) ? 'setup' : 'unavailable';
+    // This failure is handled by the catalog's unavailable state, not a crash.
+    console.warn(`[ARS catalog] ${issue}: ${error.code || `HTTP_${error.status}`} - ${error.message}`);
     return {events:[], venues:[], issue};
   } finally {
     if (timeout !== undefined) clearTimeout(timeout);

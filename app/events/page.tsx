@@ -1,9 +1,11 @@
 import Link from 'next/link';
-import EventCard from '@/components/EventCard';
+import UpcomingEvents from '@/components/UpcomingEvents';
+
+export const dynamic = 'force-dynamic';
 import { getPublicCatalog } from '@/lib/catalog';
 import { getReferralScope } from '@/lib/referral-scope';
 import CatalogUnavailable from '@/components/CatalogUnavailable';
-import { Calendar,Filter,MapPin,Search } from 'lucide-react';
+import { Filter,MapPin,Search } from 'lucide-react';
 
 interface EventsPageProps {
   searchParams: Promise<{
@@ -59,7 +61,7 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
         <div className="eyebrow">Find your night</div>
         <h1 className="text-6xl sm:text-8xl font-black uppercase text-white">Events</h1>
         <p className="text-sm text-zinc-400 max-w-2xl">
-          Find your next night out.
+          Discover upcoming nights and events happening now. All event times are in IST.
           {sourceCode && <span className="mt-2 block text-accent-cyan font-black uppercase tracking-[.16em]">Promoter referral: <code className="ars-chip">{sourceCode}</code></span>}
         </p>
       </section>
@@ -118,21 +120,7 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
         </form>
       </section>
 
-      {issue ? <CatalogUnavailable issue={issue}/> : filteredEvents.length === 0 ? (
-        <section className="ars-card p-12 text-center space-y-4">
-          <div className="w-16 h-16 rounded-2xl bg-black mx-auto flex items-center justify-center border border-white/10 text-zinc-500">
-            <Calendar className="w-8 h-8" />
-          </div>
-          <h3 className="text-xl font-black text-white uppercase">No events found</h3>
-          <p className="text-sm text-zinc-500 max-w-sm mx-auto">No live events match these filters. Adjust your search and find another night.</p>
-        </section>
-      ) : (
-        <section className="space-y-8">
-          <p className="eyebrow">The line-up / {filteredEvents.length} event{filteredEvents.length === 1 ? '' : 's'}</p>
-          <EventCard event={filteredEvents[0]} sourceCode={sourceCode} featured />
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">{filteredEvents.slice(1).map(evt => <EventCard key={evt.id} event={evt} sourceCode={sourceCode}/>)}</div>
-        </section>
-      )}
+      {issue ? <CatalogUnavailable issue={issue}/> : <UpcomingEvents events={filteredEvents} sourceCode={sourceCode} initialNow={Date.now()} />}
 
     </div>
   );
