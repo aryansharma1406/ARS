@@ -1,4 +1,5 @@
 import EventCard from '@/components/EventCard';
+import FeaturedVenueSlider from '@/components/FeaturedVenueSlider';
 import { getPublicCatalog } from '@/lib/catalog';
 import CatalogUnavailable from '@/components/CatalogUnavailable';
 import { ArrowDown, ArrowRight, CalendarDays, MapPin, ShieldCheck, Ticket, ScanLine } from 'lucide-react';
@@ -7,7 +8,8 @@ import Link from 'next/link';
 
 export default async function HomePage() {
   const { events, venues, issue } = await getPublicCatalog();
-  const heroImage = events[0]?.image || 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?q=85&w=2000&auto=format&fit=crop';
+  // ARS brand artwork is independent of owner-managed event and venue images.
+  const heroImage = 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?q=85&w=2000&auto=format&fit=crop';
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
   const tonight = events.filter(event => event.date === today);
   const upcoming = events.filter(event => event.date > today);
@@ -27,7 +29,7 @@ export default async function HomePage() {
           <div className="mt-16 flex items-center justify-between border-t border-white/20 pt-5 text-[10px] uppercase tracking-[.18em] text-zinc-400 sm:mt-20">
             <a href="#tonight" className="flex items-center gap-3">Discover the line-up <ArrowDown size={14}/></a>
             <span className="hidden sm:block">After dark. Beyond ordinary.</span>
-            {events[0]?.venue_name && <span className="hidden lg:block">{events[0].venue_name}</span>}
+            <span className="hidden lg:block">ARS Hospitality</span>
           </div>
         </div>
       </section>
@@ -37,10 +39,34 @@ export default async function HomePage() {
         {issue ? <CatalogUnavailable issue={issue}/> : tonight.length ? <div className="space-y-6"><EventCard event={tonight[0]} featured/>{tonight.length > 1 && <div className="mobile-event-rail grid gap-6 md:grid-cols-2">{tonight.slice(1,3).map(event => <EventCard key={event.id} event={event}/>)}</div>}</div> : <div className="grid gap-6 border-l-2 border-[#cbb88a]/50 bg-[#10100f] p-8 sm:grid-cols-[1fr_auto] sm:items-center sm:p-12"><div><CalendarDays size={24} className="mb-6 text-[#cbb88a]"/><h3 className="text-2xl font-black uppercase">No events tonight</h3><p className="mt-3 max-w-md text-sm leading-6 text-zinc-400">There are currently no published events for tonight. Your next night out could be just ahead.</p></div><Link href="/events" className="editorial-link w-fit">Explore the calendar <ArrowRight size={16}/></Link></div>}
       </section>
 
-      <section id="venues" className="scroll-mt-20 border-y border-white/10 bg-[#0d0d0c]">
+      <section id="venues" className="scroll-mt-20 border-y border-white/10 bg-[radial-gradient(ellipse_at_top_left,_#242016_0%,_#0d0d0c_55%)]">
         <div className="ars-section">
-          <div className="section-heading"><div><p className="eyebrow mb-4">02 / Places with a pulse</p><h2>Featured<br/>venues</h2></div><p className="hidden max-w-xs text-sm leading-6 text-zinc-400 sm:block">Find your room. Discover the spaces behind the nights.</p></div>
-          {issue ? <CatalogUnavailable issue={issue}/> : venues.length ? <div className="grid gap-8 md:grid-cols-2">{venues.map((venue,index) => <Link key={venue.id} href={`/events?venue=${encodeURIComponent(venue.name)}`} className={`group ${index % 2 ? 'md:mt-20' : ''}`}><div className="relative aspect-[5/4] overflow-hidden"><CatalogImage src={venue.image} alt={venue.name} className="object-cover transition duration-700 group-hover:scale-105" sizes="(max-width:768px) 100vw,50vw"/><div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"/><span className="absolute left-6 top-6 text-xs tracking-[.2em]">{String(index+1).padStart(2,'0')} / ARS</span></div><div className="flex items-end justify-between gap-4 border-b border-white/15 py-6"><div><p className="mb-3 flex items-center gap-2 text-[10px] uppercase tracking-[.16em] text-zinc-400"><MapPin size={12}/>{venue.location}</p><h3 className="text-3xl font-black uppercase">{venue.name}</h3></div><ArrowRight className="transition-transform group-hover:translate-x-1"/></div></Link>)}</div> : <p className="border-t border-white/10 py-10 text-zinc-400">Venue announcements will appear here when available.</p>}
+          <div className="section-heading !items-end">
+            <div><p className="eyebrow mb-4">02 / Places with a pulse</p><h2>Featured venues</h2></div>
+            <p className="max-w-xs text-sm leading-6 text-zinc-400">Find your room. Discover the spaces behind the nights.</p>
+          </div>
+          {issue ? <CatalogUnavailable issue={issue}/> : venues.length ? (
+            <FeaturedVenueSlider>
+              {venues.map((venue, index) => (
+                <Link key={venue.id} href={'/events?venue=' + encodeURIComponent(venue.name)} className="group flex h-full flex-col overflow-hidden rounded-sm border border-white/10 bg-[#111110] transition-colors duration-200 hover:border-[#cbb88a]/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#cbb88a]">
+                  <div className="relative aspect-[16/10] overflow-hidden bg-[#191916]">
+                    <CatalogImage src={venue.image} alt={venue.name} className="object-cover transition-transform duration-500 motion-safe:group-hover:scale-[1.03]" sizes="(max-width:640px) 100vw,(max-width:1280px) 50vw,33vw"/>
+                    <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/65 via-transparent to-black/10"/>
+                    <span className="absolute left-4 top-4 border border-white/15 bg-black/70 px-2.5 py-1.5 text-[10px] font-semibold tracking-[.16em] text-[#eee8db] backdrop-blur">ARS / {String(index + 1).padStart(2, '0')}</span>
+                    <span className="absolute bottom-4 left-4 flex max-w-[calc(100%-2rem)] items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[.14em] text-white"><MapPin size={12} className="shrink-0 text-[#cbb88a]"/>{venue.location}</span>
+                  </div>
+                  <div className="flex flex-1 flex-col p-5 sm:p-6">
+                    <h3 className="min-h-[3.5rem] text-xl font-black uppercase leading-7 tracking-tight text-[#f2efe8] line-clamp-2">{venue.name}</h3>
+                    <p className="mt-2 min-h-10 text-xs leading-5 text-zinc-400 line-clamp-2">{venue.address || 'Discover the events at this venue.'}</p>
+                    <div className="mt-5 flex items-center justify-between border-t border-white/10 pt-4">
+                      <span className="text-[10px] font-bold uppercase tracking-[.16em] text-[#cbb88a]">Explore events</span>
+                      <span className="flex h-8 w-8 items-center justify-center rounded-full border border-[#cbb88a]/25 text-[#cbb88a] transition-colors group-hover:bg-[#cbb88a] group-hover:text-black"><ArrowRight size={15}/></span>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </FeaturedVenueSlider>
+          ) : <p className="border-t border-white/10 py-10 text-zinc-400">Venue announcements will appear here when available.</p>}
         </div>
       </section>
 

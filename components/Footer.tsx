@@ -6,7 +6,9 @@ export default function Footer() {
     <footer className="mt-20 border-t border-white/10 bg-black/80">
       <div className="ars-page-shell grid gap-10 px-4 py-14 sm:px-6 md:grid-cols-[1.5fr_1fr_1fr] lg:px-8">
         <div>
-          <Image src="/logo.png" alt="ARS" width={170} height={56} className="h-12 w-auto object-contain" />
+          <Link href="/" aria-label="ARS home" className="inline-flex transition-opacity hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#cbb88a]">
+            <Image src="/ars-logo.svg" alt="ARS Hospitality" width={240} height={100} className="h-16 w-auto object-contain" />
+          </Link>
           <p className="mt-5 max-w-sm text-sm leading-6 text-zinc-500">Curated nights. Secure access. One unmistakable pass.</p>
         </div>
         <div>

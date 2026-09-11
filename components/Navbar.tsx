@@ -20,8 +20,8 @@ export default function Navbar() {
   return (
     <header className={`ars-nav sticky top-0 z-50 border-b border-white/10 ${pathname === '/' ? 'bg-black/65 -mb-[74px]' : 'bg-black/95'}`}>
       <div className="ars-page-shell flex h-[74px] items-center justify-between px-4 sm:px-6 lg:px-8">
-        <Link href="/" aria-label="ARS home" className="flex items-center">
-          <Image src="/logo.png" alt="ARS" width={150} height={49} priority className="h-10 w-auto object-contain" />
+        <Link href="/" aria-label="ARS home" className="flex min-h-11 shrink-0 items-center py-2 transition-opacity hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#cbb88a]">
+          <Image src="/ars-logo.svg" alt="ARS Hospitality" width={240} height={100} priority className="h-11 w-auto object-contain sm:h-12" />
         </Link>
 
         <nav aria-label="Primary navigation" className="hidden items-center gap-9 md:flex">

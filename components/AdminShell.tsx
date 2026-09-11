@@ -6,12 +6,12 @@ import {
   Calendar,
   DollarSign,
   QrCode,
-  ShieldCheck,
   Ticket,
   Users,
   Zap,
 } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -23,6 +23,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { label: 'Events & Pricing', href: '/admin/events', icon: Calendar },
     { label: 'Tickets & Orders', href: '/admin/tickets', icon: Ticket },
     { label: 'Promoter Attribution', href: '/admin/promoters', icon: Zap },
+    { label: 'Customer Coupons', href: '/admin/coupons', icon: Ticket },
     { label: 'Club Settlements', href: '/admin/settlements', icon: DollarSign },
     { label: 'Customer CRM', href: '/admin/customers', icon: Users },
   ];
@@ -31,9 +32,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div className="operations ars-page-shell px-4 py-8 space-y-7 sm:px-8">
       <div className="flex flex-col gap-4 rounded-sm border border-white/10 bg-[#090909] p-6 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 border border-accent-pink/40 flex items-center justify-center bg-black">
-            <ShieldCheck className="w-6 h-6 text-accent-pink" />
-          </div>
+          <Image src="/ars-logo.svg" alt="ARS Hospitality" width={240} height={100} className="h-10 w-24 shrink-0 object-contain" />
           <div>
             <span className="text-[10px] font-bold text-accent-pink uppercase tracking-widest block">ARS / Internal operations</span>
             <h1 className="text-2xl font-black uppercase text-white">Command center</h1>

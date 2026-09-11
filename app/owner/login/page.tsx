@@ -44,7 +44,7 @@ export default function OwnerLoginPage() {
         <div className="relative isolate hidden overflow-hidden border-r border-white/10 bg-[#090909] p-12 lg:flex lg:flex-col lg:justify-between">
           <Image src="https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?q=85&w=1600&auto=format&fit=crop" alt="Nightlife atmosphere" fill priority sizes="50vw" className="-z-20 object-cover object-center opacity-60"/>
           <div className="absolute inset-0 -z-10 bg-gradient-to-t from-black via-black/45 to-black/20"/>
-          <Image src="/logo.png" alt="ARS" width={150} height={50} className="h-12 w-auto self-start object-contain" />
+          <Image src="/ars-logo.svg" alt="ARS Hospitality" width={240} height={100} className="h-14 w-auto self-start object-contain" />
           <div>
             <p className="eyebrow">Venue intelligence</p>
             <h1 className="mt-5 text-[clamp(3.5rem,5.5vw,5.5rem)] font-black uppercase leading-[.9]">
@@ -57,7 +57,7 @@ export default function OwnerLoginPage() {
 
         <div className="flex items-center p-6 sm:p-12 lg:p-16">
           <div className="w-full max-w-md mx-auto">
-            <Image src="/logo.png" alt="ARS" width={120} height={40} className="mb-12 h-10 w-auto object-contain lg:hidden" />
+            <Image src="/ars-logo.svg" alt="ARS Hospitality" width={240} height={100} className="mb-12 h-12 w-auto object-contain lg:hidden" />
             <div className="py-8">
               <LockKeyhole className="mb-6 text-[#cbb88a]" />
               <p className="eyebrow">Secure owner access</p>

@@ -2,7 +2,6 @@
 
 import { ArrowRight, LockKeyhole, Mail, RefreshCw, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { customerAuthRedirect } from '@/lib/customer-auth-origin';
 
@@ -19,7 +18,6 @@ function GoogleMark() {
 }
 
 export default function CustomerAuthForm({ next, initialMode = 'signin', errorCode, appUrl }: { next?: string; initialMode?: Mode; errorCode?: string; appUrl?: string }) {
-  const router = useRouter();
   const [originReady, setOriginReady] = useState(!appUrl);
   const [originError, setOriginError] = useState(false);
   useEffect(() => {
@@ -83,8 +81,9 @@ export default function CustomerAuthForm({ next, initialMode = 'signin', errorCo
       if (!response.ok) throw new Error(data.error || 'We couldn’t complete that request. Please try again.');
       if (mode === 'signin') {
         setFeedback({ kind: 'success', text: 'Signed in. Opening your account…' });
-        router.replace(data.next);
-        router.refresh();
+        // Use a document navigation after the session cookie is written. This
+        // avoids a pending client-side RSC transition retaining the login UI.
+        window.location.assign(data.next);
       } else {
         setFeedback({ kind: 'success', text: data.message || 'Check your email for the next step.' });
         setPassword('');

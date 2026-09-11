@@ -1,5 +1,5 @@
 import { requireOwner } from '@/lib/owner-auth';
-import { getBusinessVenues,getEvents,getOrders,getPromoterAttributionReports,getScans,getSettlementReports,getSources,getTickets } from '@/lib/store';
+import { dbError } from '@/lib/api';
 import type { Event,Order,Scan,Settlement,Source,Ticket,Venue } from '@/lib/types';
 import { forbidden } from 'next/navigation';
 import 'server-only';
@@ -43,33 +43,54 @@ export interface OwnerCustomerRow {
 
 export async function getOwnerVenueData(requestedVenueId?: string): Promise<OwnerVenueData> {
   const owner = await requireOwner();
-  const allVenues = await getBusinessVenues();
+  const client = owner.client;
+  const venueResult = await client.rpc('business_venues');
+  dbError(venueResult.error);
+  const allVenues = (venueResult.data || []) as Venue[];
   const venues = allVenues.filter(v => owner.venueIds.includes(v.id));
   if (!venues.length) forbidden();
   const venue = venues.find(v => v.id === requestedVenueId) || venues[0];
   if (requestedVenueId && !owner.venueIds.includes(requestedVenueId)) forbidden();
 
-  const allEvents = await getEvents(venue.id);
-  const events = allEvents.filter(e => e.venue_id === venue.id);
-  const eventIds = new Set(events.map(e => e.id));
-  const [allOrders, allTickets, allSources, allScans, allSettlements] = await Promise.all([
-    getOrders(venue.id),
-    getTickets(venue.id),
-    getSources(venue.id),
-    getScans(venue.id),
-    getSettlementReports(venue.id),
+  // One authenticated, explicitly venue-scoped read per dataset. RLS remains active.
+  const [eventResult, orderResult, ticketResult, sourceResult, scanResult, settlementResult] = await Promise.all([
+    client.from('events').select('*').eq('venue_id', venue.id),
+    client.from('orders').select('*,events!inner(venue_id)').eq('events.venue_id', venue.id),
+    client.from('tickets').select('*,events!inner(name,venue_id)').eq('events.venue_id', venue.id),
+    client.from('sources').select('*').eq('venue_id', venue.id),
+    client.from('scans').select('*').eq('venue_id', venue.id),
+    client.from('settlements').select('*').eq('venue_id', venue.id),
   ]);
+  for (const result of [eventResult, orderResult, ticketResult, sourceResult, scanResult, settlementResult]) dbError(result.error);
+  const events = (eventResult.data || []).map(event => ({ ...event, venue_name: `${venue.name}, ${venue.address}` })) as Event[];
+  const orders = (orderResult.data || []) as unknown as Order[];
+  const tickets = (ticketResult.data || []).map(({ events: event, ...ticket }) => ({
+    ...ticket, event_name: event?.name, venue_name: venue.name,
+  })) as unknown as Ticket[];
+  const saved = (settlementResult.data || []) as Settlement[];
+  // Keep the existing settlement estimate formula, without refetching its inputs.
+  const settlements = events.map(event => {
+    const persisted = saved.find(row => row.event_id === event.id);
+    if (persisted) return { ...persisted, venue_name: venue.name, event_name: event.name };
+    const paid = orders.filter(order => order.event_id === event.id && order.payment_status === 'PAID');
+    const gross = paid.reduce((sum, order) => sum + Number(order.subtotal), 0);
+    const commission = Math.round(gross * Number(venue.commission_percentage) / 100);
+    return { id: `estimate-${event.id}`, venue_id: venue.id, venue_name: venue.name, event_name: event.name,
+      event_id: event.id, gross_revenue: gross, refunds: 0, eligible_revenue: gross,
+      commission_percentage: Number(venue.commission_percentage), commission_amount: commission,
+      venue_amount: gross - commission, status: 'PENDING', created_at: event.created_at } as Settlement;
+  });
 
   return {
     owner,
     venue,
     venues,
     events,
-    orders: allOrders.filter(o => eventIds.has(o.event_id)),
-    tickets: allTickets.filter(t => eventIds.has(t.event_id)),
-    sources: allSources.filter(s => s.venue_id === venue.id),
-    scans: allScans.filter(s => s.venue_id === venue.id || eventIds.has(s.event_id)),
-    settlements: allSettlements.filter(s => s.venue_id === venue.id),
+    orders,
+    tickets,
+    sources: (sourceResult.data || []) as Source[],
+    scans: (scanResult.data || []) as Scan[],
+    settlements,
   };
 }
 
@@ -270,7 +291,14 @@ export function customersForVenue(data: OwnerVenueData, range: DateFilter = 'ALL
 }
 
 export async function promoterRows(data: OwnerVenueData) {
-  const reports = await getPromoterAttributionReports(data.venue.id);
+  const reports = data.sources.map(source => {
+    const paid = data.orders.filter(order => order.payment_status === 'PAID' && order.source_code === source.code);
+    const gross = paid.reduce((sum, order) => sum + Number(order.subtotal), 0);
+    return { source_code: source.code, promoter_name: source.name, venue_name: data.venue.name,
+      tickets_sold: paid.reduce((sum, order) => sum + order.quantity, 0), gross_entry_revenue: gross,
+      commission_percentage: Number(source.commission_percentage),
+      commission_payable: Math.round(gross * Number(source.commission_percentage) / 100) };
+  });
   return reports
     .filter(r => data.sources.some(s => s.code === r.source_code))
     .map(r => ({

@@ -2,7 +2,7 @@ import EventCreateForm from '@/components/owner/EventCreateForm';
 import { Empty,PageHeader,Panel } from '@/components/owner/OwnerUI';
 import { getOwnerVenueData } from '@/lib/owner-data';
 import { formatDate,formatINR,formatTime } from '@/lib/utils';
-import Image from 'next/image';
+import CatalogImage from '@/components/CatalogImage';
 import Link from 'next/link';
 import { BarChart3 } from 'lucide-react';
 
@@ -33,7 +33,7 @@ export default async function OwnerEvents({ searchParams }: { searchParams: Prom
                 <article key={e.id} className="ars-card overflow-hidden border border-white/10 transition hover:border-accent-cyan/50">
                   <div className="grid grid-cols-[110px_1fr]">
                     <div className="relative min-h-32">
-                      <Image src={e.image} alt="" fill className="object-cover" sizes="110px" />
+                      <CatalogImage src={e.image} alt={e.name} className="object-cover" sizes="110px" />
                     </div>
                     <div className="p-4">
                       <div className="flex items-start justify-between gap-3">
@@ -43,7 +43,7 @@ export default async function OwnerEvents({ searchParams }: { searchParams: Prom
                       <p className="mt-2 text-xs text-zinc-500">{formatDate(e.date)} · {formatTime(e.start_time)} - {formatTime(e.end_time)}</p>
                       <p className="mt-4 text-sm text-zinc-400">{e.tickets_sold} / {e.ticket_capacity} sold · {formatINR(e.ticket_price)}</p>
                       <div className="mt-5 flex flex-wrap items-center gap-2">
-                        <EventCreateForm mode="edit" venueId={data.venue.id} event={e} onSaved={() => {}} />
+                        <EventCreateForm mode="edit" venueId={data.venue.id} event={e} />
                         <Link href={`/owner/events/${e.id}?venue=${data.venue.id}`} className="ars-button">Open analytics</Link>
                         <Link href={`/owner/events/${e.id}?venue=${data.venue.id}`} className="ars-button ars-button-secondary flex items-center gap-2"><BarChart3 size={14} /> Insights</Link>
                       </div>

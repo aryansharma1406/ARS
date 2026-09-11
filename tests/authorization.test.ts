@@ -43,21 +43,13 @@ beforeEach(()=>{
   if(name==='finalize_payment')return {data:{tickets:[{id:'ticket-owned'}]},error:null};
   return {data:[],error:null};
  });
- state.signIn.mockResolvedValue({error:null});state.signOut.mockResolvedValue({error:null});
+ state.signIn.mockResolvedValue({data:{user:{id:state.userId,email:'user@test.invalid'}},error:null});state.signOut.mockResolvedValue({error:null});
  state.service.mockReturnValue(client);process.env.NEXT_PUBLIC_APP_URL='https://ars.test';process.env.NEXT_PUBLIC_SUPABASE_URL='https://auth.test';process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY='test-anon';
 });
 describe('server authentication and route guards',()=>{
- it.each([
-  ['logged out','', '/owner',307],['logged out','','/admin',307],
-  ['customer','customer','/owner',403],['customer','customer','/admin',403],
-  ['staff','staff','/owner',403],['staff','staff','/admin',403],
-  ['owner','venue_owner','/admin',403],['owner','venue_owner','/owner',200],
-  ['admin','admin','/admin',200],['super admin','super_admin','/admin',200],
-  ['customer','customer','/staff/scanner',403],['owner','venue_owner','/staff/scanner',403],
- ])('%s with role %s → %s returns %i',async(_label,role,path,status)=>{
-  state.role=role;state.identityError=!role;
-  const response=await middleware(new NextRequest(`https://ars.test${path}`,{headers:{cookie:'ars_owner_session=forged'}}));
-  expect(response.status).toBe(status);expect(state.getUser).toHaveBeenCalled();
+ it('does not repeat identity checks in middleware',async()=>{
+  const response=await middleware(new NextRequest('https://ars.test/account/tickets'));
+  expect(response.status).toBe(200);expect(state.getUser).not.toHaveBeenCalled();
  });
  it('rejects forged/unverified identities even with an apparent local role',async()=>{
   state.identityError=true;await expect(requireAuth()).rejects.toMatchObject({status:401});expect(state.getUser).toHaveBeenCalled();
@@ -75,8 +67,9 @@ describe('server authentication and route guards',()=>{
  it('protects login next against external redirects',()=>{
   for(const value of ['https://evil.test','//evil.test','/\\evil.test','/\nevil.test'])expect(safeNext(value,'/owner')).toBe('/owner');
  });
- it('fails closed when configuration is absent',async()=>{
-  delete process.env.NEXT_PUBLIC_SUPABASE_URL;expect((await middleware(new NextRequest('https://ars.test/admin'))).status).toBe(503);
+ it('does not make identity calls for public pages',async()=>{
+  const response=await middleware(new NextRequest('https://ars.test/events'));
+  expect(response.status).toBe(200);expect(state.getUser).not.toHaveBeenCalled();
  });
 });
 describe('direct API and server action authorization',()=>{

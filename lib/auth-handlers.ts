@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import 'server-only';
 import { apiError,checkOrigin,jsonBody,safeNext } from './api';
-import { AuthError,requireAdmin,requireOwner,requireRole,requireStaff } from './auth';
+import { AuthError } from './auth';
 import { getSupabaseClient } from './supabase';
 
 export async function login(request: Request, portal?: 'owner'|'staff'|'admin') {
@@ -10,13 +10,21 @@ export async function login(request: Request, portal?: 'owner'|'staff'|'admin') 
     const body = await jsonBody(request);
     if (typeof body.email !== 'string' || typeof body.password !== 'string' || body.password.length > 256) throw new AuthError(400, 'Email and password are required.');
     const client = await getSupabaseClient();
-    const { error } = await client.auth.signInWithPassword({ email: body.email.trim(), password: body.password });
+    const { data, error } = await client.auth.signInWithPassword({ email: body.email.trim(), password: body.password });
     if (error) throw new AuthError(401, 'Sign-in failed. Check your credentials.');
     try {
-      if (portal === 'owner') await requireOwner();
-      else if (portal === 'staff') await requireStaff();
-      else if (portal === 'admin') await requireAdmin();
-      else await requireRole('customer');
+      // Password sign-in has just verified this Supabase identity. Reusing that
+      // verified response avoids a second Auth API round trip before redirecting.
+      if (!data.user) throw new AuthError(503, 'Sign-in could not be verified.');
+      const { data: profile, error: profileError } = await client.from('users').select('role,active').eq('id', data.user.id).maybeSingle();
+      if (profileError) throw new AuthError(503, 'Account verification is unavailable.');
+      if (!profile?.active) throw new AuthError(403, 'Your account is inactive or has not been provisioned.', 'ACCOUNT_INACTIVE');
+      const role = profile.role;
+      const permitted = portal === 'owner' ? role === 'venue_owner'
+        : portal === 'staff' ? role === 'staff'
+        : portal === 'admin' ? role === 'admin' || role === 'super_admin'
+        : role === 'customer';
+      if (!permitted) throw new AuthError(403, 'This account cannot access this area.');
     } catch (error) {
       await client.auth.signOut({ scope: 'local' });
       throw error;

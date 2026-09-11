@@ -4,6 +4,7 @@ import { getEventById } from '@/lib/store';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { cookies } from 'next/headers';
 
 interface CheckoutPageProps {
   params: Promise<{
@@ -24,6 +25,7 @@ export default async function CheckoutPage({ params, searchParams }: CheckoutPag
   if (!event) {
     notFound();
   }
+  const referralCode = sourceCode || (await cookies()).get('ars_ref_' + event.venue_id)?.value;
 
   const quantity = Math.min(10, Math.max(1, parseInt(qty || '1', 10) || 1));
 
@@ -45,7 +47,7 @@ export default async function CheckoutPage({ params, searchParams }: CheckoutPag
       </section>
 
       <div className="flex flex-wrap gap-6 border-y border-white/10 py-5 text-[10px] font-bold uppercase tracking-[.15em] text-zinc-400"><span>01 / Review your access</span><span>02 / Secure checkout</span><span>03 / Digital QR pass</span></div>
-      <CheckoutForm event={event} accountEmail={customer.email} initialQuantity={quantity} sourceCode={sourceCode} />
+      <CheckoutForm key={event.id} event={event} accountEmail={customer.email} initialQuantity={quantity} sourceCode={referralCode} />
     </div>
   );
 }

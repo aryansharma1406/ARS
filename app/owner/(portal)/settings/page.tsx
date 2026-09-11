@@ -14,8 +14,9 @@ export default async function OwnerSettings({searchParams}:{searchParams:Promise
       title="Settings"
       description="Manage the selected venue profile and operational notifications."
     />
-    <Panel title="Profile & venue">
-      <SettingsForm venue={data.venue} profile={{name:data.owner.name,email:data.owner.email}} preferences={preferences}/>
+    <Panel title="Venue contact & details">
+      <p className="mb-4 text-sm text-zinc-400">Owner contact phone: {data.venue.owner_phone || 'Not set. Ask your ARS admin to update this venue contact.'}</p>
+      <SettingsForm key={data.venue.id} venue={data.venue} profile={{name:data.venue.owner_name ?? '',email:data.venue.owner_email ?? data.owner.email}} preferences={preferences}/>
     </Panel>
   </>;
 }

@@ -41,6 +41,9 @@ export interface User {
 }
 
 export interface Venue {
+  owner_name?: string | null;
+  owner_email?: string | null;
+  owner_phone?: string | null;
   id: string;
   name: string;
   location: string;
@@ -85,6 +88,9 @@ export type PaymentStatus = 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED';
 export type TicketStatus = 'VALID' | 'USED' | 'PAYMENT_FAILED' | 'REFUNDED';
 
 export interface Order {
+  original_subtotal?: number;
+  discount_amount?: number;
+  coupon_code?: string | null;
   id: string;
   customer_id?: string;
   customer_name: string;

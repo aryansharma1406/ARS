@@ -25,6 +25,16 @@ it('shows outages as unavailable, not as a legitimately empty catalog',async()=>
  const logging=vi.spyOn(console,'error').mockImplementation(()=>{});
  expect((await getPublicCatalog()).issue).toBe('unavailable');logging.mockRestore();
 });
+it('bounds public catalog latency when the data service stalls',async()=>{
+ vi.useFakeTimers();
+ store.getEvents.mockReturnValue(new Promise(()=>{}));
+ store.getVenues.mockReturnValue(new Promise(()=>{}));
+ const logging=vi.spyOn(console,'error').mockImplementation(()=>{});
+ const result=getPublicCatalog();
+ await vi.advanceTimersByTimeAsync(800);
+ await expect(result).resolves.toEqual({events:[],venues:[],issue:'unavailable'});
+ logging.mockRestore();vi.useRealTimers();
+});
 it('does not suppress authorization denials or programming errors',async()=>{
  for(const error of [new AuthError(403,'Denied'),new Error('Unexpected failure')]){
   store.getEvents.mockRejectedValue(error);await expect(getPublicCatalog()).rejects.toBe(error);

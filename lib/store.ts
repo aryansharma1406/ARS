@@ -95,9 +95,9 @@ export async function getTickets(venueId?: string): Promise<Ticket[]> {
   const { data, error } = await query; dbError(error);
   return (data || []).map(({ events, ...ticket }) => ({ ...ticket, event_name: events?.name, venue_name: events?.venues?.name })) as Ticket[];
 }
-export async function getCustomerTickets(): Promise<Ticket[]> {
-  const auth = await requireRole('customer');
-  const { data, error } = await auth.client.from('tickets').select('*').eq('customer_id', auth.userId).order('created_at', { ascending: false });
+export async function getCustomerTickets(auth?: Awaited<ReturnType<typeof requireRole>>): Promise<Ticket[]> {
+  const customer = auth || await requireRole('customer');
+  const { data, error } = await customer.client.from('tickets').select('*').eq('customer_id', customer.userId).order('created_at', { ascending: false });
   dbError(error); return (data || []) as Ticket[];
 }
 export async function getTicketById(id: string): Promise<Ticket> {

@@ -1,7 +1,7 @@
 'use client';
 
 import { Event } from '@/lib/types';
-import { formatDate,formatINR,formatTime } from '@/lib/utils';
+import { formatDate,formatTime } from '@/lib/utils';
 import {
 AlertCircle,
 Calendar as CalendarIcon,
@@ -22,6 +22,10 @@ interface CheckoutFormProps {
   sourceCode?: string;
 }
 
+const formatINR = (amount: number) => new Intl.NumberFormat('en-IN', {
+  style: 'currency', currency: 'INR', minimumFractionDigits: 0, maximumFractionDigits: 2,
+}).format(amount);
+
 export default function CheckoutForm({ event, initialQuantity, sourceCode, accountEmail }: CheckoutFormProps) {
   const router = useRouter();
 
@@ -36,11 +40,43 @@ export default function CheckoutForm({ event, initialQuantity, sourceCode, accou
   const [quantity] = useState(initialQuantity);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [promoterCode, setPromoterCode] = useState('');
+  const [referralCode, setReferralCode] = useState(sourceCode || '');
+  const [couponQuote, setCouponQuote] = useState<{ originalSubtotal: number; discount: number; subtotal: number; fees: number; total: number; couponCode: string } | null>(null);
+  const [verifyingCode, setVerifyingCode] = useState(false);
+  const [codeResult, setCodeResult] = useState<{ valid: boolean; message: string } | null>(null);
+
+  async function verifyPromoterCode() {
+    if (verifyingCode || isSubmitting) return;
+    setCodeResult(null);
+    if (!promoterCode.trim()) {
+      setCodeResult({ valid: false, message: 'Enter a discount coupon first.' });
+      return;
+    }
+    setVerifyingCode(true);
+    try {
+      const response = await fetch('/api/checkout/apply-coupon', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ eventId: event.id, quantity: initialQuantity, couponCode: promoterCode }),
+        signal: AbortSignal.timeout(15000),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.valid) throw new Error(result.error || 'Unable to verify this code.');
+      setPromoterCode(result.quote.couponCode);
+      setCouponQuote(result.quote);
+      setCodeResult({ valid: true, message: 'Coupon applied. Your discount is included in the order total.' });
+    } catch (error) {
+      setCouponQuote(null);
+      setCodeResult({ valid: false, message: error instanceof Error && error.name !== 'TimeoutError' ? error.message : 'Verification timed out. Please try again.' });
+    } finally { setVerifyingCode(false); }
+  }
 
   const unitPrice = event.ticket_price;
-  const subtotal = unitPrice * quantity;
-  const fees = Math.round(subtotal * 0.03);
-  const total = subtotal + fees;
+  const originalSubtotal = couponQuote?.originalSubtotal ?? unitPrice * quantity;
+  const subtotal = couponQuote?.subtotal ?? originalSubtotal;
+  const fees = couponQuote?.fees ?? Math.round(subtotal * 0.03);
+  const total = couponQuote?.total ?? subtotal + fees;
 
   // Load Razorpay script dynamically
   useEffect(() => {
@@ -57,6 +93,11 @@ export default function CheckoutForm({ event, initialQuantity, sourceCode, accou
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (verifyingCode || isSubmitting) return;
+    if (promoterCode.trim() && !couponQuote) {
+      setCodeResult({ valid: false, message: 'Apply your coupon or remove it before paying.' });
+      return;
+    }
     if (!formData.ageConfirmed) {
       setErrorMsg('You must confirm you meet the age requirement for this venue.');
       return;
@@ -75,7 +116,9 @@ export default function CheckoutForm({ event, initialQuantity, sourceCode, accou
           customer_name: formData.name,
           customer_phone: formData.phone,
           eventId: event.id,
-          sourceCode,
+          sourceCode: referralCode || undefined,
+          couponCode: couponQuote?.couponCode || undefined,
+          expectedTotal: total,
         }),
       });
 
@@ -273,8 +316,10 @@ export default function CheckoutForm({ event, initialQuantity, sourceCode, accou
             </div>
             <div className="flex justify-between">
               <span>Ticket subtotal</span>
-              <span className="text-white font-semibold">{formatINR(subtotal)}</span>
+              <span className="text-white font-semibold">{formatINR(originalSubtotal)}</span>
             </div>
+            {couponQuote && <div className="flex justify-between gap-3 text-emerald-300"><span>Discount ({couponQuote.couponCode})</span><span className="font-semibold">-{formatINR(couponQuote.discount)}</span></div>}
+            {couponQuote && <div className="flex justify-between"><span>After discount</span><span className="text-white font-semibold">{formatINR(subtotal)}</span></div>}
             <div className="flex justify-between">
               <span>Processing fee (3%)</span>
               <span className="text-white font-semibold">{formatINR(fees)}</span>
@@ -286,9 +331,25 @@ export default function CheckoutForm({ event, initialQuantity, sourceCode, accou
           </div>
         </div>
 
+        <div className="space-y-3 border-y border-white/10 py-5">
+          <label htmlFor="promoter-code" className="ars-label">Discount coupon (optional)</label>
+          <div className="flex flex-wrap items-center gap-2">
+            <input id="promoter-code" type="text" value={promoterCode} disabled={isSubmitting || verifyingCode}
+              onChange={e => { setPromoterCode(e.target.value); setCodeResult(null); setCouponQuote(null); }} placeholder="Enter discount coupon"
+              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void verifyPromoterCode(); } }}
+              autoComplete="off" spellCheck={false} aria-describedby="promoter-code-help"
+              className="ars-input min-w-0 flex-1" />
+            <button type="button" disabled={isSubmitting || verifyingCode || !promoterCode.trim()} onClick={() => void verifyPromoterCode()} className="ars-button ars-button-secondary !px-3">{verifyingCode ? 'Checking...' : 'Apply coupon'}</button>
+            {promoterCode && <button type="button" disabled={isSubmitting || verifyingCode} onClick={() => { setPromoterCode(''); setCodeResult(null); setCouponQuote(null); }} className="px-2 py-3 text-xs text-zinc-400 underline underline-offset-4">Remove</button>}
+          </div>
+          {codeResult && <p role="status" className={'text-xs leading-5 ' + (codeResult.valid ? 'text-emerald-300' : 'text-red-300')}>{codeResult.message}</p>}
+          <p id="promoter-code-help" className="text-xs leading-5 text-zinc-400">Apply a customer coupon to see your savings before payment. One coupon per order.</p>
+          {referralCode && <div className="flex items-center justify-between gap-3 border-t border-white/10 pt-3 text-xs text-zinc-400"><span>Promoter referral attached from your link.</span><button type="button" disabled={isSubmitting || verifyingCode} onClick={() => setReferralCode('')} className="underline underline-offset-4">Remove referral</button></div>}
+        </div>
+
         <button
           type="submit"
-          disabled={isSubmitting}
+          disabled={isSubmitting || verifyingCode}
           className="ars-button flex w-full items-center justify-center gap-2"
         >
           <CreditCard className="w-4 h-4" />

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useOptimistic, useState, useTransition } from 'react';
 import type { Venue } from '@/lib/types';
 import {
   BarChart3,
@@ -45,17 +45,25 @@ export default function OwnerShell({
   const router = useRouter();
   const params = useSearchParams();
   const selected = params.get('venue') || venues[0]?.id;
+  const [pending, startTransition] = useTransition();
+  const [displayedVenue, setDisplayedVenue] = useOptimistic(selected);
 
   function switchVenue(id: string) {
+    if (id === selected) return;
     const next = new URLSearchParams(params);
     next.set('venue', id);
-    router.push(`${pathname}?${next}`);
+    // Event IDs belong to a specific venue; switch back to the event list.
+    const destination = pathname.startsWith('/owner/events/') ? '/owner/events' : pathname;
+    startTransition(() => {
+      setDisplayedVenue(id);
+      router.push(`${destination}?${next}`, { scroll: false });
+    });
   }
 
   return (
     <div className="operations min-h-screen bg-[#070707] text-zinc-100 lg:grid lg:grid-cols-[250px_1fr]">
       <aside className="hidden min-h-screen border-r border-white/10 bg-[#090909] p-5 lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col">
-        <Image src="/logo.png" alt="ARS" width={110} height={36} className="h-9 w-auto object-contain" />
+        <Image src="/ars-logo.svg" alt="ARS Hospitality" width={240} height={100} className="h-12 w-auto self-start object-contain" />
 
         <p className="mt-8 text-[10px] font-bold uppercase tracking-[.16em] text-zinc-500">Venue operations</p>
         <nav className="mt-4 space-y-1">
@@ -90,7 +98,8 @@ export default function OwnerShell({
             <p className="text-[10px] font-bold uppercase tracking-[.15em] text-zinc-500">Venue</p>
             <select
               aria-label="Active venue"
-              value={selected}
+              value={displayedVenue}
+              disabled={pending}
               onChange={(e) => switchVenue(e.target.value)}
               className="ars-select"
             >
@@ -111,8 +120,8 @@ export default function OwnerShell({
           </div>
         </header>
 
-        <main className="ars-page-shell max-w-[1500px] px-4 py-8 sm:px-6 lg:px-8">
-          {children}
+        <main aria-busy={pending} className="ars-page-shell max-w-[1500px] px-4 py-8 sm:px-6 lg:px-8">
+          {pending ? <div role="status" className="ars-card p-8"><p className="eyebrow">Switching venue</p><h1 className="mt-3 text-3xl font-bold">{venues.find(venue => venue.id === displayedVenue)?.name}</h1><p className="mt-3 text-sm text-zinc-400">Loading the latest venue data...</p></div> : children}
         </main>
       </div>
 

@@ -2,7 +2,8 @@
 
 import { EmptyState, PageLoading } from '@/components/PageState';
 
-import { addSource,getPromoterAttributionReports,getVenues } from '@/lib/store';
+import { getPromoterAttributionReports,getVenues } from '@/lib/store';
+import { createPromoterCode } from '@/lib/admin-promoters';
 import { PromoterAttributionReport,Venue } from '@/lib/types';
 import { downloadCSV,formatINR } from '@/lib/utils';
 import { AlertCircle,Download,Plus,Zap } from 'lucide-react';
@@ -14,6 +15,17 @@ export default function AdminPromotersPage() {
   const [reports, setReports] = useState<PromoterAttributionReport[]>([]);
   const [venues, setVenues] = useState<Venue[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
+  const [linkMessage, setLinkMessage] = useState('');
+
+  async function copyReferralLink(code: string) {
+    const link = new URL('/r/' + encodeURIComponent(code), window.location.origin).href;
+    try {
+      await navigator.clipboard.writeText(link);
+      setLinkMessage('Referral link copied: ' + link);
+    } catch { setLinkMessage('Referral link: ' + link); }
+  }
 
   const [formData, setFormData] = useState({
     name: '',
@@ -41,12 +53,19 @@ export default function AdminPromotersPage() {
 
   const handleCreateSource = async (e: React.FormEvent) => {
     e.preventDefault();
-    await addSource({
+    if (saving) return;
+    setSaving(true);
+    setSaveError('');
+    try {
+    const result = await createPromoterCode({
       ...formData,
       code: formData.code.trim().toUpperCase(),
       commission_percentage: Number(formData.commission_percentage),
-      active: true,
     });
+    if (!result.success) {
+      setSaveError(result.error);
+      return;
+    }
     setIsModalOpen(false);
     setFormData({
       name: '',
@@ -54,7 +73,10 @@ export default function AdminPromotersPage() {
       venue_id: venues[0]?.id || '',
       commission_percentage: 20.0,
     });
-    loadData();
+    await loadData();
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'Unable to create promoter code. Please try again.');
+    } finally { setSaving(false); }
   };
 
   const handleExportCSV = () => {
@@ -77,16 +99,17 @@ export default function AdminPromotersPage() {
 
   return (
     <div className="space-y-6">
+      {linkMessage && <p role="status" className="ars-card break-all p-4 text-sm text-[#cbb88a]">{linkMessage}</p>}
       {loadError ? <div role="alert" className="border-l-2 border-red-400 bg-red-950/20 p-5 text-sm text-red-200"><p>{loadError}</p><button className="ars-button ars-button-secondary mt-4" onClick={() => void loadData()}>Retry loading</button></div> : !reports.length && <EmptyState title="No promoters to display" copy="Records matching this view will appear here when available."/>}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-black uppercase text-white flex items-center gap-2"><Zap className="w-5 h-5 text-accent-pink" /> Source & promoter tracking</h2>
-          <p className="text-xs text-zinc-400">Track referral links and entry revenue commissions.</p>
+          <p className="text-xs text-zinc-400">Share one referral link per code. Paid bookings credit the promoter on discounted ticket revenue, excluding fees.</p>
         </div>
 
         <div className="flex items-center gap-3">
           <button onClick={handleExportCSV} className="ars-button flex items-center gap-2"><Download className="w-4 h-4 text-accent-cyan" /> Export source report</button>
-          <button onClick={() => setIsModalOpen(true)} className="ars-button ars-button-secondary flex items-center gap-2"><Plus className="w-4 h-4" /> Add promoter code</button>
+          <button onClick={() => { setSaveError(''); setIsModalOpen(true); }} className="ars-button ars-button-secondary flex items-center gap-2"><Plus className="w-4 h-4" /> Add promoter code</button>
         </div>
       </div>
 
@@ -113,6 +136,7 @@ export default function AdminPromotersPage() {
             <thead className="bg-black/30 text-zinc-500 uppercase text-[10px] font-black border-b border-white/10">
               <tr>
                 <th className="px-6 py-4">Source / Referral code</th>
+                <th className="px-6 py-4">Referral link</th>
                 <th className="px-6 py-4">Promoter name</th>
                 <th className="px-6 py-4">Venue</th>
                 <th className="px-6 py-4">Tickets sold</th>
@@ -125,6 +149,7 @@ export default function AdminPromotersPage() {
               {reports.map((rep) => (
                 <tr key={rep.source_code} className="hover:bg-black/40 transition-colors">
                   <td className="px-6 py-4 font-mono font-black text-white"><span className="px-2.5 py-1 rounded bg-accent-purple/20 border border-accent-purple/40 text-accent-purple text-xs">{rep.source_code}</span></td>
+                  <td className="px-6 py-4"><button type="button" onClick={() => void copyReferralLink(rep.source_code)} className="ars-button ars-button-secondary whitespace-nowrap">Copy referral link</button></td>
                   <td className="px-6 py-4 font-semibold text-white">{rep.promoter_name}</td>
                   <td className="px-6 py-4 text-accent-cyan">{rep.venue_name}</td>
                   <td className="px-6 py-4 font-black text-white">{rep.tickets_sold} Passes</td>
@@ -143,6 +168,8 @@ export default function AdminPromotersPage() {
           <div className="ars-card max-w-lg w-full p-6 sm:p-8 space-y-6">
             <h3 className="text-xl font-black text-white">Add promoter referral code</h3>
             <form onSubmit={handleCreateSource} className="space-y-4 text-xs">
+              {saveError && <p role="alert" className="border-l-2 border-red-400 bg-red-950/30 p-4 leading-5 text-red-200">{saveError}</p>}
+              <p className="text-xs leading-5 text-zinc-400">Each code can belong to only one venue. Use a different code for each club.</p>
               <div><label className="ars-label">Promoter name / influencer</label><input type="text" required placeholder="Aryan Sharma" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="ars-input" /></div>
               <div><label className="ars-label">Unique source code (url param)</label><input type="text" required placeholder="XYZ-ARYAN" value={formData.code} onChange={e => setFormData({ ...formData, code: e.target.value })} className="ars-input uppercase" /></div>
               <div className="grid grid-cols-2 gap-4">
@@ -153,8 +180,8 @@ export default function AdminPromotersPage() {
               </div>
 
               <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="ars-button ars-button-secondary w-1/2">Cancel</button>
-                <button type="submit" className="ars-button w-1/2">Create code</button>
+                <button type="button" disabled={saving} onClick={() => setIsModalOpen(false)} className="ars-button ars-button-secondary w-1/2">Cancel</button>
+                <button type="submit" disabled={saving} className="ars-button w-1/2">{saving ? 'Creating...' : 'Create code'}</button>
               </div>
             </form>
           </div>

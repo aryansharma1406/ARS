@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 100" fill="none">
+  <title>ARS Hospitality</title>
+  <g fill="#f3efe5">
+    <path d="M9 66 49 10 86 66H77L49 23 18 66Z"/>
+    <path d="M47 45 65 66H57L43 49Z"/>
+    <path d="M65 16H112C136 16 144 23 140 34C137 44 124 47 107 47H98L128 66H114L76 40H108C123 40 132 38 133 31C135 25 127 22 112 22H70Z"/>
+    <path d="M216 20C207 13 191 11 177 14C162 17 152 24 153 33C154 42 165 45 180 47L195 49C209 51 213 54 209 59C204 65 190 67 176 64C167 63 159 59 154 55L149 61C156 67 167 71 180 72C198 74 214 70 220 61C227 50 216 44 199 42L183 40C167 38 160 36 161 31C162 25 171 21 181 20C194 18 205 21 211 25Z"/>
+  </g>
+  <text x="120" y="89" text-anchor="middle" fill="#d6cbb5" font-family="Verdana, sans-serif" font-size="6.5" letter-spacing="4.5">HOSPITALITY</text>
+</svg>
