@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import EventCard from '@/components/EventCard';
 import { getPublicCatalog } from '@/lib/catalog';
+import { getReferralScope } from '@/lib/referral-scope';
 import CatalogUnavailable from '@/components/CatalogUnavailable';
 import { Calendar,Filter,MapPin,Search } from 'lucide-react';
 
@@ -22,6 +23,7 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
   const venueFilter = params.venue || '';
   const categoryFilter = params.category || '';
   const sourceCode = params.source || '';
+  const referralScope = sourceCode ? await getReferralScope(sourceCode) : null;
   const searchQuery = (params.query || '').toLowerCase();
   const priceMax = params.price ? parseInt(params.price, 10) : 10000;
 
@@ -29,6 +31,8 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
 
   // Discovery filters only; catalog and purchase rules are unchanged.
   const filteredEvents = events.filter(evt => {
+    if (sourceCode && (!referralScope || evt.venue_id !== referralScope.venue_id
+      || (referralScope.event_ids.length > 0 && !referralScope.event_ids.includes(evt.id)))) return false;
     if (params.date && evt.date !== params.date) return false;
     if (venueFilter && !evt.venue_name?.toLowerCase().includes(venueFilter.toLowerCase())) {
       return false;

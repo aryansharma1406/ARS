@@ -5,7 +5,13 @@ import { AuthError } from './auth-errors';
 export function checkOrigin(request: Request) {
   const origin = request.headers.get('origin');
   const allowed = new URL(process.env.NEXT_PUBLIC_APP_URL || request.url).origin;
-  if (!origin || origin !== allowed || request.headers.get('sec-fetch-site') === 'cross-site') {
+  const target = new URL(request.url);
+  // Next.js may move to another port when the default development port is busy.
+  // Accept only the exact local request origin, not arbitrary localhost origins.
+  const localSameOrigin = process.env.NODE_ENV === 'development'
+    && ['localhost', '127.0.0.1', '[::1]'].includes(target.hostname)
+    && origin === target.origin;
+  if (!origin || (origin !== allowed && !localSameOrigin) || request.headers.get('sec-fetch-site') === 'cross-site') {
     throw new AuthError(403, 'Request origin denied.');
   }
 }

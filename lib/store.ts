@@ -1,6 +1,7 @@
 'use server';
 
 import { dbError } from './api';
+import { promoterCommission } from './promoter-commission';
 import { AuthError,requireAdmin,requireAuth,requireOwner,requireRole,requireStaff,requireVenueAccess } from './auth';
 import { getSupabaseClient } from './supabase';
 import type { AuditLog,Event,Order,PromoterAttributionReport,Scan,Settlement,Source,Ticket,UserRole,Venue,VenueStaffAssignment } from './types';
@@ -161,7 +162,7 @@ export async function getPromoterAttributionReports(venueId?: string): Promise<P
   return sources.map(source => {
     const paid = orders.filter(o => o.payment_status === 'PAID' && o.source_code === source.code);
     const gross = paid.reduce((n,o) => n + Number(o.subtotal),0);
-    return { source_code:source.code,promoter_name:source.name,venue_name:venues.find(v=>v.id===source.venue_id)?.name || '',tickets_sold:paid.reduce((n,o)=>n+o.quantity,0),gross_entry_revenue:gross,commission_percentage:Number(source.commission_percentage),commission_payable:Math.round(gross*Number(source.commission_percentage)/100) };
+    return { source_code:source.code,promoter_name:source.name,venue_name:venues.find(v=>v.id===source.venue_id)?.name || '',tickets_sold:paid.reduce((n,o)=>n+o.quantity,0),gross_entry_revenue:gross,commission_percentage:Number(source.commission_percentage),commission_payable:promoterCommission(paid, Number(source.commission_percentage)) };
   });
 }
 export async function getSettlementReports(venueId?: string): Promise<Settlement[]> {

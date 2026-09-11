@@ -5,6 +5,7 @@ import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { cookies } from 'next/headers';
+import { testPaymentsEnabled } from '@/lib/test-payments';
 
 interface CheckoutPageProps {
   params: Promise<{
@@ -33,7 +34,7 @@ export default async function CheckoutPage({ params, searchParams }: CheckoutPag
     <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8 space-y-8">
       <div>
         <Link
-          href={`/events/${event.id}${sourceCode ? `?source=${sourceCode}` : ''}`}
+          href={`/events/${event.id}${referralCode ? `?source=${encodeURIComponent(referralCode)}` : ''}`}
           className="ars-button ars-button-secondary inline-flex w-fit"
         >
           <ArrowLeft className="w-4 h-4" /> Back to event
@@ -47,7 +48,7 @@ export default async function CheckoutPage({ params, searchParams }: CheckoutPag
       </section>
 
       <div className="flex flex-wrap gap-6 border-y border-white/10 py-5 text-[10px] font-bold uppercase tracking-[.15em] text-zinc-400"><span>01 / Review your access</span><span>02 / Secure checkout</span><span>03 / Digital QR pass</span></div>
-      <CheckoutForm key={event.id} event={event} accountEmail={customer.email} initialQuantity={quantity} sourceCode={referralCode} />
+      <CheckoutForm key={event.id} event={event} accountEmail={customer.email} initialQuantity={quantity} sourceCode={referralCode} testPayment={testPaymentsEnabled()} />
     </div>
   );
 }

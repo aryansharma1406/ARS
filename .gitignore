@@ -9,3 +9,4 @@ coverage/
 
 # Generated from the canonical migrations for the Supabase SQL Editor.
 /supabase/setup.sql
+supabase/.temp/

@@ -1,7 +1,9 @@
 import { requireOwner } from '@/lib/owner-auth';
 import { dbError } from '@/lib/api';
+import { promoterCommission } from '@/lib/promoter-commission';
 import type { Event,Order,Scan,Settlement,Source,Ticket,Venue } from '@/lib/types';
 import { forbidden } from 'next/navigation';
+import { cache } from 'react';
 import 'server-only';
 
 export type DateFilter = 'ALL' | 'TODAY' | 'YESTERDAY' | '7D' | '30D' | {from:string;to:string};
@@ -41,7 +43,7 @@ export interface OwnerCustomerRow {
   attendanceHistory: OwnerTicketHistoryRow[];
 }
 
-export async function getOwnerVenueData(requestedVenueId?: string): Promise<OwnerVenueData> {
+export const getOwnerVenueData = cache(async function getOwnerVenueData(requestedVenueId?: string): Promise<OwnerVenueData> {
   const owner = await requireOwner();
   const client = owner.client;
   const venueResult = await client.rpc('business_venues');
@@ -92,7 +94,7 @@ export async function getOwnerVenueData(requestedVenueId?: string): Promise<Owne
     scans: (scanResult.data || []) as Scan[],
     settlements,
   };
-}
+});
 
 export async function getOwnerEvent(eventId: string, venueId?: string) {
   const data = await getOwnerVenueData(venueId);
@@ -297,7 +299,7 @@ export async function promoterRows(data: OwnerVenueData) {
     return { source_code: source.code, promoter_name: source.name, venue_name: data.venue.name,
       tickets_sold: paid.reduce((sum, order) => sum + order.quantity, 0), gross_entry_revenue: gross,
       commission_percentage: Number(source.commission_percentage),
-      commission_payable: Math.round(gross * Number(source.commission_percentage) / 100) };
+      commission_payable: promoterCommission(paid, Number(source.commission_percentage)) };
   });
   return reports
     .filter(r => data.sources.some(s => s.code === r.source_code))

@@ -2,7 +2,7 @@
 
 import { Menu, UserRound, X } from 'lucide-react';
 import Image from 'next/image';
-import Link from 'next/link';
+import Link from '@/components/FastLink';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 

@@ -10,13 +10,15 @@ QrCode,
 Search,
 XCircle
 } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import CameraQrScanner from '@/components/CameraQrScanner';
 
 export default function StaffScanner({ assignments }: { assignments: (VenueStaffAssignment & { venues: {name:string} })[] }) {
   const [assignmentId, setAssignmentId] = useState(assignments[0]?.id || '');
   const selectedVenue = assignments.find(a=>a.id===assignmentId)?.venues.name || '';
   const [inputToken, setInputToken] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const processing = useRef(false);
   const [scanResponse, setScanResponse] = useState<{
     result: 'VALID' | 'ALREADY_USED' | 'INVALID' | null;
     ticket?: Ticket;
@@ -27,8 +29,9 @@ export default function StaffScanner({ assignments }: { assignments: (VenueStaff
   const [stats, setStats] = useState({ totalScanned: 0, validToday: 0 });
 
   const handleScanSubmit = async (tokenToTest?: string) => {
-    const token = tokenToTest || inputToken;
-    if (!token) return;
+    const token = (tokenToTest || inputToken).trim();
+    if (!token || processing.current) return;
+    processing.current = true;
 
     setIsProcessing(true);
     setScanResponse({ result: null });
@@ -81,6 +84,7 @@ export default function StaffScanner({ assignments }: { assignments: (VenueStaff
         message: 'Network error communicating with door server.',
       });
     } finally {
+      processing.current = false;
       setIsProcessing(false);
       setInputToken('');
     }
@@ -101,6 +105,7 @@ export default function StaffScanner({ assignments }: { assignments: (VenueStaff
               aria-label="Scanner assignment"
               className="mt-2 ars-select w-auto min-w-56"
               value={assignmentId}
+              disabled={isProcessing}
               onChange={e=>setAssignmentId(e.target.value)}
             >
               {assignments.map(a=><option key={a.id} value={a.id}>{a.venues.name} · {a.gate_name||'All gates'}{a.event_id?' · Event assignment':''}</option>)}
@@ -131,14 +136,7 @@ export default function StaffScanner({ assignments }: { assignments: (VenueStaff
               <QrCode className="w-5 h-5 text-accent-pink" /> QR entry verification
             </h3>
 
-            {/* Simulated Live Viewfinder */}
-            <div className="relative h-64 sm:h-80 rounded-sm border border-white/20 bg-black/35 flex flex-col items-center justify-center text-center p-4 overflow-hidden">
-              <div className="size-28 rounded-sm border border-[#cbb88a]/50 flex items-center justify-center">
-                <QrCode className="w-12 h-12 text-accent-pink opacity-80" />
-              </div>
-              <span className="text-xs font-semibold text-zinc-300 mt-2">{isProcessing ? 'Verifying pass…' : 'Ready for a QR token'}</span>
-              <p className="mt-2 max-w-xs text-xs leading-5 text-zinc-500">Use a connected scanner or paste the QR token below.</p>
-            </div>
+            <CameraQrScanner key={`${assignmentId}-${isProcessing}`} disabled={isProcessing} onScan={token => void handleScanSubmit(token)} />
 
             {/* Manual Token Input */}
             <form onSubmit={(e) => { e.preventDefault(); handleScanSubmit(); }} className="space-y-3">

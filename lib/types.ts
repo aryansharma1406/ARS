@@ -88,6 +88,8 @@ export type PaymentStatus = 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED';
 export type TicketStatus = 'VALID' | 'USED' | 'PAYMENT_FAILED' | 'REFUNDED';
 
 export interface Order {
+  promoter_commission_percentage?: number | null;
+  referral_visit_id?: string | null;
   original_subtotal?: number;
   discount_amount?: number;
   coupon_code?: string | null;

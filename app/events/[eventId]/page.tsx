@@ -37,7 +37,7 @@ export default async function EventDetailPage({ params, searchParams }: EventDet
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-8 pb-28 lg:pb-8">
       <Link
-        href={`/events${sourceCode ? `?source=${sourceCode}` : ''}`}
+        href={`/events${sourceCode ? `?source=${encodeURIComponent(sourceCode)}` : ''}`}
         className="ars-button ars-button-secondary inline-flex w-fit"
       >
         <ArrowLeft className="w-4 h-4" /> Back to all events

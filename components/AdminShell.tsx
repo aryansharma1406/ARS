@@ -10,7 +10,7 @@ import {
   Users,
   Zap,
 } from 'lucide-react';
-import Link from 'next/link';
+import Link from '@/components/FastLink';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 

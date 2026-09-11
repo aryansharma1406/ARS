@@ -1,11 +1,12 @@
 import { forbidden,redirect } from 'next/navigation';
+import { cache } from 'react';
 import 'server-only';
 import { AuthError } from './auth-errors';
 import { getSupabaseClient } from './supabase';
 import type { UserRole,VenueStaffAssignment } from './types';
 export { AuthError } from './auth-errors';
 
-export async function requireAuth() {
+export const requireAuth = cache(async function requireAuth() {
   const client = await getSupabaseClient();
   // getSession() and cookie contents are not identity verification.
   const { data: { user }, error } = await client.auth.getUser();
@@ -14,7 +15,7 @@ export async function requireAuth() {
   if (profileError) throw new AuthError(503, 'Account verification is unavailable.');
   if (!profile || !profile.active) throw new AuthError(403, 'Your account is inactive or has not been provisioned.', 'ACCOUNT_INACTIVE');
   return { userId: user.id, name: profile.name as string, email: user.email || profile.email as string, role: profile.role as UserRole, client };
-}
+});
 
 export async function requireRole(...roles: UserRole[]) {
   const auth = await requireAuth();

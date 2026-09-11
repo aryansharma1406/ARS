@@ -7,8 +7,11 @@ AlertCircle,
 Calendar as CalendarIcon,
 CreditCard,
 Mail,
+Minus,
 Phone,
+Plus,
 ShieldCheck,
+Ticket,
 User
 } from 'lucide-react';
 import CatalogImage from '@/components/CatalogImage';
@@ -20,13 +23,14 @@ interface CheckoutFormProps {
   accountEmail: string;
   initialQuantity: number;
   sourceCode?: string;
+  testPayment?: boolean;
 }
 
 const formatINR = (amount: number) => new Intl.NumberFormat('en-IN', {
-  style: 'currency', currency: 'INR', minimumFractionDigits: 0, maximumFractionDigits: 2,
+  style: 'currency', currency: 'INR', minimumFractionDigits: 2, maximumFractionDigits: 2,
 }).format(amount);
 
-export default function CheckoutForm({ event, initialQuantity, sourceCode, accountEmail }: CheckoutFormProps) {
+export default function CheckoutForm({ event, initialQuantity, sourceCode, accountEmail, testPayment = false }: CheckoutFormProps) {
   const router = useRouter();
 
   const [formData, setFormData] = useState({
@@ -37,7 +41,7 @@ export default function CheckoutForm({ event, initialQuantity, sourceCode, accou
     ageConfirmed: false,
   });
 
-  const [quantity] = useState(initialQuantity);
+  const [quantity, setQuantity] = useState(Math.min(10, Math.max(1, initialQuantity)));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [promoterCode, setPromoterCode] = useState('');
@@ -46,7 +50,7 @@ export default function CheckoutForm({ event, initialQuantity, sourceCode, accou
   const [verifyingCode, setVerifyingCode] = useState(false);
   const [codeResult, setCodeResult] = useState<{ valid: boolean; message: string } | null>(null);
 
-  async function verifyPromoterCode() {
+  async function verifyPromoterCode(nextQuantity = quantity) {
     if (verifyingCode || isSubmitting) return;
     setCodeResult(null);
     if (!promoterCode.trim()) {
@@ -58,7 +62,7 @@ export default function CheckoutForm({ event, initialQuantity, sourceCode, accou
       const response = await fetch('/api/checkout/apply-coupon', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ eventId: event.id, quantity: initialQuantity, couponCode: promoterCode }),
+        body: JSON.stringify({ eventId: event.id, quantity: nextQuantity, couponCode: promoterCode }),
         signal: AbortSignal.timeout(15000),
       });
       const result = await response.json();
@@ -72,6 +76,15 @@ export default function CheckoutForm({ event, initialQuantity, sourceCode, accou
     } finally { setVerifyingCode(false); }
   }
 
+  function changeQuantity(nextQuantity: number) {
+    if (isSubmitting || verifyingCode || nextQuantity < 1 || nextQuantity > 10) return;
+    setQuantity(nextQuantity);
+    setErrorMsg('');
+    setCouponQuote(null);
+    setCodeResult(null);
+    if (promoterCode.trim()) void verifyPromoterCode(nextQuantity);
+  }
+
   const unitPrice = event.ticket_price;
   const originalSubtotal = couponQuote?.originalSubtotal ?? unitPrice * quantity;
   const subtotal = couponQuote?.subtotal ?? originalSubtotal;
@@ -80,6 +93,7 @@ export default function CheckoutForm({ event, initialQuantity, sourceCode, accou
 
   // Load Razorpay script dynamically
   useEffect(() => {
+    if (testPayment) return;
     const script = document.createElement('script');
     script.src = 'https://checkout.razorpay.com/v1/checkout.js';
     script.async = true;
@@ -89,7 +103,7 @@ export default function CheckoutForm({ event, initialQuantity, sourceCode, accou
         document.body.removeChild(script);
       }
     };
-  }, []);
+  }, [testPayment]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -125,6 +139,12 @@ export default function CheckoutForm({ event, initialQuantity, sourceCode, accou
       const orderData = await orderRes.json();
       if (!orderRes.ok || !orderData.success) {
         throw new Error(orderData.error || 'Failed to initialize order');
+      }
+
+      if (orderData.testPayment) {
+        if (!orderData.tickets?.length) throw new Error('Test booking did not return tickets. Check My Pass before trying again.');
+        router.push(`/ticket/${orderData.tickets[0].id}`);
+        return;
       }
 
       const { razorpayOrder } = orderData;
@@ -192,14 +212,18 @@ export default function CheckoutForm({ event, initialQuantity, sourceCode, accou
   };
 
   return (
-    <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+    <form onSubmit={handleSubmit} className="grid grid-cols-1 items-start lg:grid-cols-12 gap-6 lg:gap-8">
 
       {/* Left Column: Customer Form Inputs */}
-      <div className="lg:col-span-7 ars-card p-6 sm:p-8 space-y-6">
+      <div className="lg:col-span-7 ars-card p-6 sm:p-8 space-y-6 !border-white/10">
 
-        <h3 className="text-lg font-black text-white flex items-center gap-2 uppercase tracking-wide">
-          <User className="w-5 h-5 text-accent-cyan" /> Guest details
-        </h3>
+        <div className="border-b border-white/10 pb-6">
+          <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#cbb88a]">01 / Booking details</p>
+          <h3 className="text-xl font-bold text-white flex items-center gap-3">
+            <User className="w-5 h-5 text-[#cbb88a]" /> Lead guest
+          </h3>
+          <p className="mt-2 text-sm leading-6 text-zinc-400">Enter the booking holder&apos;s details as shown on their government ID.</p>
+        </div>
 
         {errorMsg && (
           <div role="alert" className="rounded-sm bg-red-950/60 border border-red-500/40 p-4 text-xs text-red-300 flex gap-2">
@@ -287,15 +311,23 @@ export default function CheckoutForm({ event, initialQuantity, sourceCode, accou
           </div>
         </div>
 
+        <div className="flex gap-3 border-t border-white/10 pt-5 text-xs leading-6 text-zinc-400">
+          <Ticket className="mt-1 h-4 w-4 shrink-0 text-[#cbb88a]" />
+          <p>{quantity === 1 ? 'One digital entry pass' : `${quantity} digital entry passes`} will be issued after payment. Every guest must meet the event&apos;s age requirement and carry a valid government ID.</p>
+        </div>
       </div>
 
       {/* Right Column: Order Summary & Razorpay Trigger */}
-      <div className="lg:col-span-5 ars-card h-fit lg:sticky lg:top-28 space-y-6 p-6 sm:p-8">
-        <div className="relative aspect-[2/1] overflow-hidden"><CatalogImage src={event.image} alt={event.name} sizes="(max-width:1024px) 100vw,40vw" className="object-cover"/></div>
-        <h3 className="text-lg font-black text-white border-b border-white/10 pb-4 uppercase tracking-wide">Order summary</h3>
+      <div className="lg:col-span-5 ars-card h-fit space-y-5 p-5 sm:p-7 !border-[#cbb88a]/25 !bg-gradient-to-b from-[#cbb88a]/[0.06] to-transparent">
+        <div className="border-b border-white/10 pb-4">
+          <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#cbb88a]">02 / Your reservation</p>
+          <h3 className="text-xl font-bold text-white">Order summary</h3>
+        </div>
 
         <div className="space-y-3">
-          <div>
+          <div className="flex items-center gap-4 pb-2">
+            <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-sm border border-white/10"><CatalogImage src={event.image} alt={event.name} sizes="80px" className="object-cover"/></div>
+            <div className="min-w-0">
             <h4 className="text-base font-black text-white">{event.name}</h4>
             <p className="text-xs text-accent-pink font-medium">
               {event.venue_name || 'Venue details to be announced'}
@@ -303,17 +335,23 @@ export default function CheckoutForm({ event, initialQuantity, sourceCode, accou
             <p className="text-xs text-zinc-400 mt-1">
               {formatDate(event.date)} at {formatTime(event.start_time)}
             </p>
+            </div>
           </div>
 
-          <div className="pt-3 border-t border-white/10 space-y-2 text-xs text-zinc-300">
+          <div className="pt-4 border-t border-white/10 space-y-4 text-sm text-zinc-300">
             <div className="flex justify-between">
               <span>Pass tier</span>
               <span className="text-white font-semibold">General VIP Entry</span>
             </div>
-            <div className="flex justify-between">
-              <span>Quantity</span>
-              <span className="text-white font-semibold">{quantity} Pass(es)</span>
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-sm border border-white/10 bg-black/20 p-3">
+              <div><span className="font-medium text-white">Tickets</span><p className="mt-1 text-xs text-zinc-400">{formatINR(unitPrice)} each</p></div>
+              <div className="flex items-center rounded-sm border border-[#cbb88a]/30" role="group" aria-label="Ticket quantity">
+                <button type="button" aria-label="Remove one ticket" disabled={quantity <= 1 || isSubmitting || verifyingCode} onClick={() => changeQuantity(quantity - 1)} className="flex h-11 w-11 items-center justify-center text-[#cbb88a] transition-colors hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#cbb88a] disabled:opacity-30"><Minus className="h-4 w-4" /></button>
+                <output aria-live="polite" aria-label="Number of tickets" className="w-9 text-center font-semibold tabular-nums text-white">{quantity}</output>
+                <button type="button" aria-label="Add one ticket" disabled={quantity >= 10 || isSubmitting || verifyingCode} onClick={() => changeQuantity(quantity + 1)} className="flex h-11 w-11 items-center justify-center text-[#cbb88a] transition-colors hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#cbb88a] disabled:opacity-30"><Plus className="h-4 w-4" /></button>
+              </div>
             </div>
+            <p className="!mt-2 text-xs text-zinc-500">Up to 10 tickets per booking. Subject to availability.</p>
             <div className="flex justify-between">
               <span>Ticket subtotal</span>
               <span className="text-white font-semibold">{formatINR(originalSubtotal)}</span>
@@ -324,28 +362,30 @@ export default function CheckoutForm({ event, initialQuantity, sourceCode, accou
               <span>Processing fee (3%)</span>
               <span className="text-white font-semibold">{formatINR(fees)}</span>
             </div>
-            <div className="flex justify-between border-t border-white/10 pt-3 text-2xl text-white">
-              <span className="font-bold uppercase">Total due</span>
-              <span className="font-black">{formatINR(total)}</span>
+            <div className="flex flex-wrap items-baseline justify-between gap-2 border-t border-white/10 pt-4 text-white">
+              <span className="font-semibold">Total due</span>
+              <span className="text-2xl font-bold tabular-nums tracking-tight">{verifyingCode ? 'Updating...' : formatINR(total)}</span>
             </div>
           </div>
         </div>
 
         <div className="space-y-3 border-y border-white/10 py-5">
           <label htmlFor="promoter-code" className="ars-label">Discount coupon (optional)</label>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="grid grid-cols-1 min-[400px]:grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
             <input id="promoter-code" type="text" value={promoterCode} disabled={isSubmitting || verifyingCode}
               onChange={e => { setPromoterCode(e.target.value); setCodeResult(null); setCouponQuote(null); }} placeholder="Enter discount coupon"
               onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void verifyPromoterCode(); } }}
               autoComplete="off" spellCheck={false} aria-describedby="promoter-code-help"
               className="ars-input min-w-0 flex-1" />
-            <button type="button" disabled={isSubmitting || verifyingCode || !promoterCode.trim()} onClick={() => void verifyPromoterCode()} className="ars-button ars-button-secondary !px-3">{verifyingCode ? 'Checking...' : 'Apply coupon'}</button>
-            {promoterCode && <button type="button" disabled={isSubmitting || verifyingCode} onClick={() => { setPromoterCode(''); setCodeResult(null); setCouponQuote(null); }} className="px-2 py-3 text-xs text-zinc-400 underline underline-offset-4">Remove</button>}
+            <button type="button" disabled={isSubmitting || verifyingCode || !promoterCode.trim()} onClick={() => void verifyPromoterCode()} className="ars-button ars-button-secondary !px-4 !tracking-wide">{verifyingCode ? 'Checking...' : 'Apply'}</button>
           </div>
+          {promoterCode && <button type="button" disabled={isSubmitting || verifyingCode} onClick={() => { setPromoterCode(''); setCodeResult(null); setCouponQuote(null); }} className="text-xs text-zinc-400 underline underline-offset-4">Remove coupon</button>}
           {codeResult && <p role="status" className={'text-xs leading-5 ' + (codeResult.valid ? 'text-emerald-300' : 'text-red-300')}>{codeResult.message}</p>}
           <p id="promoter-code-help" className="text-xs leading-5 text-zinc-400">Apply a customer coupon to see your savings before payment. One coupon per order.</p>
           {referralCode && <div className="flex items-center justify-between gap-3 border-t border-white/10 pt-3 text-xs text-zinc-400"><span>Promoter referral attached from your link.</span><button type="button" disabled={isSubmitting || verifyingCode} onClick={() => setReferralCode('')} className="underline underline-offset-4">Remove referral</button></div>}
         </div>
+
+        {testPayment && <div role="status" className="border border-amber-400/30 bg-amber-400/10 p-4 text-xs leading-6 text-amber-200"><strong className="block">Test checkout · No money will be charged</strong>This creates a paid test order and valid QR passes in the connected database. Ticket availability, revenue and commission reports will include this booking.</div>}
 
         <button
           type="submit"
@@ -353,7 +393,7 @@ export default function CheckoutForm({ event, initialQuantity, sourceCode, accou
           className="ars-button flex w-full items-center justify-center gap-2"
         >
           <CreditCard className="w-4 h-4" />
-          {isSubmitting ? 'Processing...' : `Pay ${formatINR(total)} securely`}
+          {isSubmitting ? 'Processing...' : testPayment ? 'Complete test booking' : `Pay ${formatINR(total)} securely`}
         </button>
 
         <div className="rounded-xl border border-white/15 px-3 py-3 text-xs text-zinc-300 flex gap-2 bg-black/20">
