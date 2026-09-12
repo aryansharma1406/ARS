@@ -19,6 +19,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const navItems = [
     { label: 'Overview Analytics', href: '/admin', icon: BarChart3 },
+    { label: 'Venue Performance', href: '/admin/performance', icon: BarChart3 },
+    { label: 'Compare Venues', href: '/admin/compare', icon: Building2 },
     { label: 'Venues & Commission', href: '/admin/venues', icon: Building2 },
     { label: 'Events & Pricing', href: '/admin/events', icon: Calendar },
     { label: 'Tickets & Orders', href: '/admin/tickets', icon: Ticket },
@@ -56,7 +58,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="flex items-center gap-2 border-b border-white/10 pb-2">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = pathname === item.href;
+            const isActive = pathname === item.href || (item.href === '/admin/performance' && pathname.startsWith('/admin/performance/'));
 
             return (
               <Link
