@@ -176,7 +176,7 @@ export default function AdminVenuesPage() {
       })()}
 
       {isModalOpen && (
-        <VenueModalOverlay>
+        <VenueModalOverlay onClose={()=>{if(!saving&&!uploadingPhoto)setIsModalOpen(false);}}>
           <div role="dialog" aria-modal="true" aria-label={editingVenue ? 'Edit venue details' : 'Add partner venue'} className="ars-card max-h-[90dvh] overflow-y-auto max-w-lg w-full p-6 sm:p-8 space-y-6">
             <h3 className="text-xl font-black text-white">{editingVenue ? 'Edit venue details' : 'Add partner venue'}</h3>
             <form onSubmit={handleCreateVenue} className="space-y-4 text-xs">
@@ -210,7 +210,7 @@ export default function AdminVenuesPage() {
           </div>
         </VenueModalOverlay>
       )}
-      {deletingVenue && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md">
+      {deletingVenue && <div onClick={event=>{if(event.target===event.currentTarget&&!busyVenue)setDeletingVenue(null);}} className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md">
         <div role="alertdialog" aria-modal="true" aria-labelledby="delete-venue-title" aria-describedby="delete-venue-description" className="ars-card w-full max-w-lg space-y-5 p-6 sm:p-8">
           <h3 id="delete-venue-title" className="text-xl font-bold text-white">Disable {deletingVenue.name}?</h3>
           <p id="delete-venue-description" className="text-sm leading-6 text-zinc-400">This disables the venue using its existing active status. Historical tickets, payments, settlements and audit records are retained. You can find it under Disabled and enable it again. Other venues on the same owner account are unaffected.</p>

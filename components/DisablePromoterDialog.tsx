@@ -22,7 +22,7 @@ export default function DisablePromoterDialog({ name, code, busy, error, onCance
     };
   }, []);
 
-  return <dialog ref={dialog} aria-labelledby="disable-promoter-title" aria-describedby="disable-promoter-description"
+  return <dialog ref={dialog} onClick={event=>{if(event.target!==event.currentTarget||busy)return;const bounds=event.currentTarget.getBoundingClientRect();if(event.clientX<bounds.left||event.clientX>bounds.right||event.clientY<bounds.top||event.clientY>bounds.bottom)onCancel();}} aria-labelledby="disable-promoter-title" aria-describedby="disable-promoter-description"
     onCancel={event => { event.preventDefault(); if (!busy) onCancel(); }}
     className="m-auto w-[calc(100%-2rem)] max-w-lg rounded-sm border border-[#cbb88a]/25 bg-[#111110] p-0 text-[#f3efe5] shadow-2xl backdrop:bg-black/75 backdrop:backdrop-blur-sm">
     <div className="border-b border-white/10 px-6 py-5 sm:px-8">
