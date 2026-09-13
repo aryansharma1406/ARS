@@ -14,7 +14,8 @@ export async function POST(request: Request) {
     }
     const customer = await requireRole('customer');
     const body = await jsonBody(request);
-    onlyFields(body,['eventId','quantity','sourceCode','couponCode','expectedTotal','customer_name','customer_phone']);
+    onlyFields(body,['eventId','tierId','quantity','sourceCode','couponCode','expectedTotal','customer_name','customer_phone']);
+    if(typeof body.tierId!=='string'||!/^[0-9a-f-]{36}$/i.test(body.tierId))throw new AuthError(400,'Choose a pass tier.');
     if (body.couponCode != null && typeof body.couponCode !== 'string') throw new AuthError(400,'Enter a valid coupon.');
     if (typeof body.expectedTotal !== 'number' || !Number.isFinite(body.expectedTotal) || body.expectedTotal <= 0) throw new AuthError(400,'Refresh checkout to get the latest total.');
     if (body.sourceCode != null && typeof body.sourceCode !== 'string') throw new AuthError(400,'Enter a valid promoter code.');
@@ -30,7 +31,8 @@ export async function POST(request: Request) {
         if (value && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)) visitId = value;
       }
     }
-    const {data:order,error}=await client.rpc('reserve_attributed_order',{target_customer:customer.userId,target_event:body.eventId,ticket_quantity:body.quantity,guest_name:body.customer_name,guest_phone:body.customer_phone,referral_code:sourceCode || null,discount_code:body.couponCode || null,expected_total:body.expectedTotal,visit_id:visitId});
+    const {data:order,error}=await client.rpc('reserve_tier_order',{target_customer:customer.userId,target_event:body.eventId,target_tier:body.tierId,ticket_quantity:body.quantity,guest_name:body.customer_name,guest_phone:body.customer_phone,referral_code:sourceCode || null,discount_code:body.couponCode || null,expected_total:body.expectedTotal,visit_id:visitId});
+    if(error?.code==='22023'&&(error.message.startsWith('Selected pass')||error.message==='Event has ended.'))throw new AuthError(400,error.message);
     if (error?.code === '22023' && error.message === 'This referral is not available for this event.') throw new AuthError(400,'This referral is not assigned to this event. Remove the referral or choose an assigned event.');
     if (error?.code === '22023' && (error.message.startsWith('Coupon:') || error.message.startsWith('Checkout total changed'))) throw new AuthError(400,error.message);
     if (error?.code === '22023' && error.message === 'Invalid referral for this venue') throw new AuthError(400,'This referral link is no longer valid for this venue. Remove the referral below to continue.');

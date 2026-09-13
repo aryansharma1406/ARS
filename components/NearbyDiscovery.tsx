@@ -1,0 +1,11 @@
+'use client';
+import Link from 'next/link';
+import {useEffect,useState} from 'react';
+import {areaKey,discoveryKey,nearbyVenues,readDiscoveryLocation,type DiscoveryVenue,type DiscoveryLocation} from '@/lib/discovery-location';
+export default function NearbyDiscovery({venues,sourceCode}:{venues:DiscoveryVenue[];sourceCode:string}){
+ const [point,setPoint]=useState<DiscoveryLocation|null>(null);const [area,setArea]=useState('');
+ useEffect(()=>{function load(){setPoint(readDiscoveryLocation());try{setArea(sessionStorage.getItem(areaKey)||'');}catch{}}
+ load();const timer=setInterval(load,60000);window.addEventListener('focus',load);return()=>{clearInterval(timer);window.removeEventListener('focus',load);};},[]);
+ const visible=point?nearbyVenues(venues.filter(v=>!area||v.location===area),point).slice(0,6):venues.filter(v=>area&&v.location===area).slice(0,6).map(v=>({...v,distance:null}));
+ return <section className="border border-[#cbb88a]/20 bg-[#cbb88a]/5 p-5"><div className="flex flex-wrap items-center justify-between gap-4"><div><p className="eyebrow">{point?'Nearby discovery':area?`Explore ${area}`:'Your city, your nights'}</p><p className="mt-2 text-xs leading-6 text-zinc-400">{point?'Approximate distance to venues with recorded map positions.':area?'Venues in your selected area.':'Location is optional. Choose an area during onboarding to personalize discovery.'}</p></div><Link href="/account/onboarding?next=%2Fevents" className="text-xs text-[#cbb88a] underline">Choose location</Link>{(point||area)&&<button onClick={()=>{try{sessionStorage.removeItem(discoveryKey);sessionStorage.removeItem(areaKey);}catch{}setPoint(null);setArea('');}} className="text-xs text-zinc-400 underline">Clear browser location</button>}</div>{visible.length>0?<div className="mt-4 flex flex-wrap gap-3">{visible.map(v=>{const query=new URLSearchParams({venue:v.name});if(sourceCode)query.set('source',sourceCode);return <Link href={`/events?${query}`} key={v.id} className="border border-white/15 px-4 py-3 text-sm hover:border-[#cbb88a]"><span>{v.name}</span>{v.distance!==null&&<span className="ml-3 text-xs text-[#cbb88a]">~{Math.round(v.distance)} km</span>}</Link>;})}</div>:(point||area)&&<p className="mt-4 text-xs text-zinc-400">No matching mapped venues yet. All available events remain below.</p>}</section>;
+}

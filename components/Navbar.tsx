@@ -29,7 +29,7 @@ export default function Navbar() {
         </nav>
 
         <div className="hidden items-center gap-7 md:flex">
-          <Link href="/account/tickets" aria-label="Account" className={`${navClass} flex min-h-11 items-center gap-2`}><UserRound size={17} strokeWidth={1.5}/><span>Account</span></Link>
+          <Link href="/account/profile" aria-label="Account" className={`${navClass} flex min-h-11 items-center gap-2`}><UserRound size={17} strokeWidth={1.5}/><span>Account</span></Link>
         </div>
 
         <button onClick={() => setOpen(!open)} aria-label="Toggle navigation" aria-expanded={open} aria-controls="mobile-navigation" className="flex min-h-11 min-w-11 items-center justify-center border border-white/15 text-white md:hidden">
@@ -39,7 +39,7 @@ export default function Navbar() {
 
       {open && (
         <nav id="mobile-navigation" aria-label="Mobile navigation" className="border-t border-white/10 bg-black/95 px-4 pb-6 pt-3 backdrop-blur-xl md:hidden">
-          {[...links, { href: '/account/tickets', label: 'Account' }].map((link) => (
+            {[...links, { href: '/account/profile', label: 'Account' }].map((link) => (
             <Link key={link.label} href={link.href} onClick={() => setOpen(false)} className="flex min-h-12 items-center justify-between border-b border-white/10 text-sm font-medium uppercase tracking-[.12em] text-zinc-200">
               {link.label}<span aria-hidden="true">↗</span>
             </Link>

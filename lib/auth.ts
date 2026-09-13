@@ -14,7 +14,7 @@ export const requireAuth = cache(async function requireAuth() {
   const { data: profile, error: profileError } = await client.from('users').select('id,name,email,role,active').eq('id', user.id).maybeSingle();
   if (profileError) throw new AuthError(503, 'Account verification is unavailable.');
   if (!profile || !profile.active) throw new AuthError(403, 'Your account is inactive or has not been provisioned.', 'ACCOUNT_INACTIVE');
-  return { userId: user.id, name: profile.name as string, email: user.email || profile.email as string, role: profile.role as UserRole, client };
+  return { userId: user.id, name: profile.name as string, email: user.email || (profile.email as string | null) || '', phone: user.phone_confirmed_at && user.phone ? `+${user.phone.replace(/^\+/, '')}` : '', role: profile.role as UserRole, client };
 });
 
 export async function requireRole(...roles: UserRole[]) {

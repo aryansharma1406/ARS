@@ -1,6 +1,8 @@
 import { LiveSearchProvider, CatalogSearchInput } from '@/components/LiveSearch';
 import Link from 'next/link';
 import UpcomingEvents from '@/components/UpcomingEvents';
+import NearbyDiscovery from '@/components/NearbyDiscovery';
+import { discoveryVenues } from '@/lib/customer-onboarding';
 
 export const dynamic = 'force-dynamic';
 import { getPublicCatalog } from '@/lib/catalog';
@@ -21,6 +23,7 @@ interface EventsPageProps {
 
 export default async function EventsPage({ searchParams }: EventsPageProps) {
   const params = await searchParams;
+  const discovery = await discoveryVenues();
   const {events, venues, issue} = await getPublicCatalog();
 
   const venueFilter = params.venue || '';
@@ -60,6 +63,7 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
       </section>
 
       {/* Filter Toolbar */}
+      <NearbyDiscovery venues={discovery.venues.filter(v=>!sourceCode || (referralScope && v.id===referralScope.venue_id))} sourceCode={sourceCode}/>
       <section className="ars-card p-4 sm:p-6 space-y-4">
         <form method="GET" action="/events" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {sourceCode && <input type="hidden" name="source" value={sourceCode} />}

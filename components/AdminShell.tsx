@@ -5,7 +5,6 @@ import {
   Building2,
   Calendar,
   DollarSign,
-  QrCode,
   Ticket,
   Users,
   Zap,
@@ -13,6 +12,13 @@ import {
 import Link from '@/components/FastLink';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
+import { useLinkStatus } from 'next/link';
+
+function ModulePending() {
+  const { pending } = useLinkStatus();
+  if (!pending) return null;
+  return <span role="status" className="pointer-events-none absolute inset-0 flex items-center justify-center gap-2 border-b-2 border-[#cbb88a] bg-[#17150f] text-[#e8dcc0]"><span aria-hidden="true" className="h-2 w-2 rounded-full bg-[#cbb88a] motion-safe:animate-pulse"/>Opening...</span>;
+}
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -28,6 +34,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { label: 'Customer Coupons', href: '/admin/coupons', icon: Ticket },
     { label: 'Club Settlements', href: '/admin/settlements', icon: DollarSign },
     { label: 'Customer CRM', href: '/admin/customers', icon: Users },
+    { label: 'Marketing', href: '/admin/marketing', icon: Zap },
   ];
 
   return (
@@ -42,12 +49,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
 
         <div className="flex items-center gap-3">
-          <Link
-            href="/staff/scanner"
-            className="ars-button ars-button-secondary !min-h-10 !px-4"
-          >
-            <QrCode className="w-4 h-4" /> Staff scanner
-          </Link>
           <form action="/api/admin/logout" method="post">
             <button className="px-4 py-2.5 rounded-lg border border-border text-xs font-semibold text-zinc-300">Sign out</button>
           </form>
@@ -64,13 +65,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <Link
                 key={item.href}
                 href={item.href}
-                aria-current={isActive ? "page" : undefined} className={`flex-shrink-0 border-b-2 border-transparent px-4 py-4 text-xs uppercase tracking-wide ${
+                prefetch={true}
+                scroll={false}
+                aria-current={isActive ? "page" : undefined} className={`relative flex-shrink-0 border-b-2 border-transparent px-4 py-4 text-xs uppercase tracking-wide ${
                   isActive
                     ? 'bg-[#cbb88a]/10 text-[#e8dcc0] !border-[#cbb88a]'
                     : 'text-zinc-400 hover:text-white'
                 }`}
               >
                 <span className="flex items-center gap-2"><Icon className="w-4 h-4" />{item.label}</span>
+                <ModulePending/>
               </Link>
             );
           })}

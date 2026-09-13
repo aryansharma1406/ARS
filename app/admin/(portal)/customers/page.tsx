@@ -1,93 +1,42 @@
 'use client';
-
-import { EmptyState, PageLoading } from '@/components/PageState';
-
-import { getOrders } from '@/lib/store';
-import { formatINR } from '@/lib/utils';
-import { Users } from 'lucide-react';
-import { useEffect,useState } from 'react';
-
-interface CustomerRecord {
-  name: string;
-  email: string;
-  phone: string;
-  ticketsCount: number;
-  totalSpend: number;
-  lastEvent: string;
-}
-
-export default function AdminCustomersPage() {
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState('');
-  const [customers, setCustomers] = useState<CustomerRecord[]>([]);
-
-  useEffect(() => { loadCustomers(); }, []);
-
-  const loadCustomers = async () => {
-    setLoadError('');
-    try {
-    const orders = await getOrders();
-
-    const customerMap: Record<string, CustomerRecord> = {};
-
-    for (const ord of orders) {
-      const email = ord.customer_email.toLowerCase();
-      if (!customerMap[email]) {
-        customerMap[email] = {
-          name: ord.customer_name,
-          email: ord.customer_email,
-          phone: ord.customer_phone,
-          ticketsCount: 0,
-          totalSpend: 0,
-          lastEvent: 'Club Xtreme Event',
-        };
-      }
-      customerMap[email].ticketsCount += ord.quantity;
-      customerMap[email].totalSpend += ord.subtotal;
-    }
-
-    setCustomers(Object.values(customerMap));
-    } catch (error) {
-      setLoadError(error instanceof Error ? error.message : 'Unable to load records.');
-    } finally { setLoading(false); }
-  };
-
-  if (loading) return <PageLoading/>;
-
-  return (
-    <div className="space-y-6">
-      {loadError ? <div role="alert" className="border-l-2 border-red-400 bg-red-950/20 p-5 text-sm text-red-200"><p>{loadError}</p><button className="ars-button ars-button-secondary mt-4" onClick={() => void loadCustomers()}>Retry loading</button></div> : !customers.length && <EmptyState title="No customers to display" copy="Records matching this view will appear here when available."/>}
-      <div>
-        <h2 className="text-2xl font-black uppercase text-white flex items-center gap-2"><Users className="w-5 h-5 text-accent-cyan" /> Customer directory & CRM</h2>
-        <p className="text-xs text-zinc-400">View registered partygoers, attendance history, and lifetime ticket value.</p>
-      </div>
-
-      <div className="ars-card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-zinc-300">
-            <thead className="bg-black/30 text-zinc-500 uppercase text-[10px] font-black border-b border-white/10">
-              <tr>
-                <th className="px-6 py-4">Customer name</th>
-                <th className="px-6 py-4">Contact phone</th>
-                <th className="px-6 py-4">Email address</th>
-                <th className="px-6 py-4">Passes purchased</th>
-                <th className="px-6 py-4 text-right">Lifetime spend</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {customers.map((c) => (
-                <tr key={c.email} className="hover:bg-black/40 transition-colors">
-                  <td className="px-6 py-4 font-black text-white">{c.name}</td>
-                  <td className="px-6 py-4 font-mono text-zinc-400">{c.phone}</td>
-                  <td className="px-6 py-4 text-accent-cyan">{c.email}</td>
-                  <td className="px-6 py-4 font-black text-white">{c.ticketsCount} Pass(es)</td>
-                  <td className="px-6 py-4 text-right font-black text-accent-pink">{formatINR(c.totalSpend)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
+import {useEffect,useRef,useState} from 'react';
+import {getAdminCustomerCRM} from '@/lib/admin-customer-crm';
+import {LiveSearchInput,SearchHighlight} from '@/components/LiveSearch';
+import {matchesSearch} from '@/lib/search';
+import {PageLoading} from '@/components/PageState';
+import Link from 'next/link';
+import CustomerLocations,{SavedCustomerLocation} from '@/components/admin/CustomerLocations';
+type Data=Awaited<ReturnType<typeof getAdminCustomerCRM>>;
+const money=(n:number)=>new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',minimumFractionDigits:2}).format(n);
+const stamp=(value?:string)=>value?new Intl.DateTimeFormat('en-IN',{dateStyle:'medium',timeStyle:'short',timeZone:'Asia/Kolkata'}).format(new Date(value)):'Not recorded';
+const customerKey=(o:Data['orders'][number])=>o.customer_id?'account:'+o.customer_id:o.customer_email?.trim()?'email:'+o.customer_email.trim().toLowerCase():'order:'+o.id;
+export default function CustomersPage(){
+ const [data,setData]=useState<Data|null>(null);const [error,setError]=useState('');const [search,setSearch]=useState('');const [venue,setVenue]=useState('all');const [range,setRange]=useState('ALL');const [from,setFrom]=useState('');const [to,setTo]=useState('');const [segment,setSegment]=useState('all');const [sort,setSort]=useState('spend');const [selected,setSelected]=useState<string|null>(null);const [page,setPage]=useState(1);const dialog=useRef<HTMLDivElement>(null);
+ async function load(){setError('');try{setData(await getAdminCustomerCRM());}catch(e){setError(e instanceof Error?e.message:'Unable to load customer data.');}}
+ useEffect(()=>{void load();},[]);useEffect(()=>setPage(1),[search,venue,range,from,to,segment,sort]);
+ useEffect(()=>{if(!selected)return;const before=document.activeElement as HTMLElement|null;const old=document.body.style.overflow;document.body.style.overflow='hidden';dialog.current?.focus();const key=(e:KeyboardEvent)=>{if(e.key==='Escape')setSelected(null);if(e.key==='Tab'){const items=dialog.current?.querySelectorAll<HTMLElement>('button,a[href]');if(!items?.length)return;const first=items[0],last=items[items.length-1];if(e.shiftKey&&(document.activeElement===first||document.activeElement===dialog.current)){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}};document.addEventListener('keydown',key);return()=>{document.body.style.overflow=old;document.removeEventListener('keydown',key);before?.focus();};},[selected]);
+ if(!data)return error?<div role="alert" className="ars-card p-6">{error}<button onClick={()=>void load()} className="ars-button mt-4">Retry</button></div>:<PageLoading/>;
+ const eventMap=new Map(data.events.map(e=>[e.id,e]));const venueMap=new Map(data.venues.map(v=>[v.id,v.name]));const day=86400000;const today=new Date(data.asOf+330*60000).toISOString().slice(0,10);let start=-Infinity,end=data.asOf;
+ const locationMap=new Map(data.locations.map(location=>['account:'+location.customer_id,location]));
+ if(range==='TODAY')start=Date.parse(today+'T00:00:00+05:30');else if(['7','30','90'].includes(range))start=data.asOf-Number(range)*day;else if(range==='CUSTOM'){start=Date.parse(from+'T00:00:00+05:30');end=Math.min(data.asOf,Date.parse(to+'T23:59:59.999+05:30'));}
+ const invalid=range==='CUSTOM'&&(!Number.isFinite(start)||!Number.isFinite(end)||start>end);
+ const scopedOrders=data.orders.filter(o=>(venue==='all'||eventMap.get(o.event_id)?.venue_id===venue)&&Date.parse(o.created_at)>=start&&Date.parse(o.created_at)<=end&&!invalid);
+ const groups=new Map<string,Data['orders']>();for(const order of scopedOrders){const key=customerKey(order);if(!groups.has(key))groups.set(key,[]);groups.get(key)!.push(order);}
+ const customers=[...groups].map(([id,orders])=>{
+   orders.sort((a,b)=>b.created_at.localeCompare(a.created_at));const contact=orders[0];const paid=orders.filter(o=>o.payment_status==='PAID');const ids=new Set(paid.map(o=>o.id));const tickets=data.tickets.filter(t=>ids.has(t.order_id));const used=tickets.filter(t=>t.status==='USED');const visits=new Set(used.map(t=>t.event_id)).size;const times=used.map(t=>t.scanned_at).filter((s):s is string=>Boolean(s)).sort();
+   const spend=paid.reduce((sum,o)=>sum+Number(o.subtotal),0);const lastActivity=Math.max(...paid.map(o=>Date.parse(o.created_at)),...times.map(s=>Date.parse(s)));
+   const active=lastActivity>=data.asOf-90*day;const label=!active?'Inactive':paid.some(o=>/\bvip\b/i.test(o.ticket_type))?'VIP':visits>=2?'Regular':'New';
+   return {id,name:contact.customer_name||'Name not recorded',email:contact.customer_email,phone:contact.customer_phone,orders,paid,tickets,used,visits,spend,average:paid.length?spend/paid.length:0,last:times.at(-1),first:times[0],active,segment:label,repeat:visits?(visits-1)/visits*100:null};
+ });
+ const filtered=customers.filter(c=>(segment==='all'||(segment==='Active'?c.active:c.segment===segment))&&matchesSearch(search,[c.name,c.email,c.phone])).sort((a,b)=>sort==='name'?a.name.localeCompare(b.name):sort==='visits'?b.visits-a.visits:sort==='last'?(Date.parse(b.last||'')||0)-(Date.parse(a.last||'')||0):b.spend-a.spend);
+ const revenue=filtered.reduce((n,c)=>n+c.spend,0);const profile=customers.find(c=>c.id===selected);const pages=Math.max(1,Math.ceil(filtered.length/25));const current=Math.min(page,pages);
+ function exportCSV(){const rows=[['Customer','Email','Phone','City','Segment','Visits','Tickets','Total Spend INR','Avg Spend Per Paid Order INR','Last Visit IST','Repeat Visit Rate','Venue filter','Date range','From','To'],...filtered.map(c=>[c.name,c.email,c.phone,'Not recorded',c.segment,c.visits,c.paid.reduce((n,o)=>n+Number(o.quantity),0),c.spend,c.average,stamp(c.last),c.repeat===null?'No visits':c.repeat.toFixed(1)+'%',venue,range,from,to])];const text=rows.map(row=>row.map(v=>{let s=String(v??'');if(/^[=+@\-\t\r]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"';}).join(',')).join('\r\n');const url=URL.createObjectURL(new Blob(['\ufeff'+text],{type:'text/csv;charset=utf-8;'}));const a=document.createElement('a');a.href=url;a.download='ARS-filtered-customer-CRM.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+ return <div className="space-y-5"><header className="flex flex-wrap items-center justify-between gap-4"><div><p className="eyebrow">ARS / Customer intelligence</p><h1 className="mt-2 text-3xl font-bold">Customer CRM</h1></div><button onClick={exportCSV} className="ars-button ars-button-secondary">Export filtered CSV</button></header>
+ <div className="grid grid-cols-2 gap-3 xl:grid-cols-6">{[['Registered Customers',data.registeredCustomers??'Unavailable'],['Purchasing Customers',filtered.length],['Active Customers',filtered.filter(c=>c.active).length],['Repeat Customers',filtered.filter(c=>c.visits>=2).length],['Avg Spend',money(filtered.length?revenue/filtered.length:0)],['Total Customer Revenue',money(revenue)]].map(([label,value])=><div key={label} className="ars-card bg-gradient-to-br from-[#cbb88a]/[.07] to-transparent p-4"><p className="text-[9px] uppercase tracking-widest text-zinc-500">{label}</p><p className="mt-3 break-words text-xl font-semibold text-[#e2d4ae]">{value}</p></div>)}</div>
+ <section className="ars-card space-y-4 p-4"><LiveSearchInput value={search} onChange={setSearch} placeholder="Search customer name, phone or email"/><div className="flex flex-wrap gap-2">{['ALL','TODAY','7','30','90','CUSTOM'].map(r=><button key={r} aria-pressed={range===r} onClick={()=>{setRange(r);if(r==='CUSTOM'){setFrom(today);setTo(today);}}} className={`ars-button !px-3 !py-2 !text-xs ${range===r?'':'ars-button-secondary'}`}>{r==='ALL'?'All time':r==='TODAY'?'Today':r==='CUSTOM'?'Custom':r+'D'}</button>)}</div>{range==='CUSTOM'&&<div className="flex flex-wrap gap-3"><label className="text-xs">From<input type="date" max={today} value={from} onChange={e=>setFrom(e.target.value)} className="ars-input mt-1 [color-scheme:dark]"/></label><label className="text-xs">To<input type="date" max={today} value={to} onChange={e=>setTo(e.target.value)} className="ars-input mt-1 [color-scheme:dark]"/></label></div>}{invalid&&<p role="alert" className="text-xs text-amber-200">Choose a valid date range.</p>}<div className="grid gap-3 sm:grid-cols-3"><select aria-label="Venue" value={venue} onChange={e=>setVenue(e.target.value)} className="ars-select"><option value="all">All venues</option>{data.venues.map(v=><option key={v.id} value={v.id}>{v.name}</option>)}</select><select aria-label="Customer segment" value={segment} onChange={e=>setSegment(e.target.value)} className="ars-select"><option value="all">All activity / segments</option>{['Active','New','Regular','VIP','Inactive'].map(v=><option key={v}>{v}</option>)}</select><select aria-label="Sort customers" value={sort} onChange={e=>setSort(e.target.value)} className="ars-select"><option value="spend">Spend: highest first</option><option value="name">Name A-Z</option><option value="visits">Most visits</option><option value="last">Last visit: newest first</option></select></div></section>
+ <CustomerLocations locations={data.locations} unavailable={data.locationsUnavailable} refresh={()=>void load()}/>
+ <details className="text-xs leading-6 text-zinc-500"><summary className="cursor-pointer text-[#e2d4ae]">Definitions & privacy</summary>Registered Customers counts all customer-role accounts site-wide, including accounts without orders and disabled accounts; it is not affected by these filters and does not indicate email verification or current online status. The purchasing-customer directory covers customers with orders. Figures and profiles follow venue and order-date filters. Revenue is paid ticket subtotal after discounts, excluding fees; existing test bookings are included. Visits count distinct events with used passes on paid orders, attributed to the booking customer, not individual guests. Active means a paid booking or recorded check-in within 90 days in this cohort. Segment priority: Inactive, VIP ticket tier, Regular (2+ events attended), New (remaining active customers). Segments are derived labels, not saved memberships. KPI average is spend per listed customer; table average is spend per paid order. Repeat rate is visits after the first divided by total visits. Saved location is the latest account-linked permission choice, independent of purchase dates. Coordinates are approximate, not a city or proof of attendance. Opening Maps shares the displayed coordinates with Google. Location coordinates are not included in CSV exports. Exports contain personal data: share only with authorized recipients.</details>
+ <section className="ars-card overflow-x-auto"><table className="w-full min-w-[1100px] text-left text-xs"><thead><tr>{['Customer','Contact','Saved Location','Visits','Tickets','Total Spend','Avg Spend / Order','Last Visit','Repeat Rate'].map(h=><th key={h} className="border-b border-white/10 p-3 text-[9px] uppercase tracking-wide text-zinc-500">{h}</th>)}</tr></thead><tbody>{filtered.slice((current-1)*25,current*25).map(c=><tr key={c.id} onClick={()=>setSelected(c.id)} className="cursor-pointer border-b border-white/5 hover:bg-[#cbb88a]/[.04]"><td className="p-3"><button className="text-left font-semibold text-[#e2d4ae] underline" onClick={()=>setSelected(c.id)}><SearchHighlight query={search}>{c.name}</SearchHighlight></button><p className="mt-2 text-[10px] text-zinc-500">{c.segment}</p></td><td className="p-3"><p><SearchHighlight query={search}>{c.email||'Email not recorded'}</SearchHighlight></p><p className="mt-1 text-zinc-500"><SearchHighlight query={search}>{c.phone||'Phone not recorded'}</SearchHighlight></p></td><td className="p-3"><SavedCustomerLocation location={locationMap.get(c.id)} unavailable={data.locationsUnavailable}/></td><td className="p-3">{c.visits}</td><td className="p-3">{c.paid.reduce((n,o)=>n+Number(o.quantity),0)}</td><td className="p-3 text-[#e2d4ae]">{money(c.spend)}</td><td className="p-3">{money(c.average)}</td><td className="p-3">{stamp(c.last)}</td><td className="p-3">{c.repeat===null?'No visits':c.repeat.toFixed(1)+'%'}</td></tr>)}</tbody></table>{!filtered.length&&<p className="p-10 text-center text-zinc-400">No customers match these filters.</p>}</section><div className="flex justify-between text-xs text-zinc-400"><span>{filtered.length} customers</span><div className="flex gap-4"><button disabled={current===1} onClick={()=>setPage(current-1)} className="disabled:opacity-30">Previous</button><span>{current} / {pages}</span><button disabled={current===pages} onClick={()=>setPage(current+1)} className="disabled:opacity-30">Next</button></div></div>
+ {profile&&<div className="fixed inset-0 z-[200] flex justify-end bg-black/85 backdrop-blur-sm" onClick={()=>setSelected(null)}><div ref={dialog} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="customer-360" onClick={e=>e.stopPropagation()} className="h-full w-full max-w-3xl space-y-6 overflow-y-auto border-l border-[#cbb88a]/30 bg-[#0b0b09] p-6 outline-none"><header className="flex items-start justify-between"><div><p className="eyebrow">Customer 360</p><h2 id="customer-360" className="mt-2 text-2xl font-bold">{profile.name}</h2><p className="mt-2 text-xs text-zinc-500">{profile.email} / {profile.phone}</p></div><button onClick={()=>setSelected(null)} className="text-[#e2d4ae]">Close</button></header><p className="text-xs text-zinc-500">Showing the selected venue and purchase-date cohort. Location is the latest account snapshot.</p><section className="ars-card p-4"><h3 className="mb-3 text-sm font-semibold">Saved location</h3><SavedCustomerLocation location={locationMap.get(profile.id)} unavailable={data.locationsUnavailable}/></section><div className="grid grid-cols-2 gap-3">{[['Spend',money(profile.spend)],['Events attended',profile.visits],['First visit',stamp(profile.first)],['Last visit',stamp(profile.last)]].map(([label,value])=><div key={label} className="ars-card p-3"><p className="text-xs text-zinc-500">{label}</p><p className="mt-2 text-sm text-[#e2d4ae]">{value}</p></div>)}</div><section><h3 className="text-sm font-semibold">Venues visited</h3><p className="mt-2 text-xs text-zinc-400">{[...new Set(profile.used.map(t=>venueMap.get(eventMap.get(t.event_id)?.venue_id||'')||'Venue unavailable'))].join(', ')||'No recorded attendance'}</p></section><section><h3 className="mb-3 text-sm font-semibold">Purchase history</h3>{profile.orders.map(o=><div key={o.id} className="space-y-2 border-t border-white/10 py-3 text-xs"><p className="font-semibold text-[#e2d4ae]">{eventMap.get(o.event_id)?.name||o.event_id}</p><p>{stamp(o.created_at)} / {o.payment_status} / {o.quantity} tickets / {money(Number(o.subtotal))} subtotal</p><p className="text-zinc-500">{o.ticket_type} / Source: {o.source_code||'Direct'}</p><p className="break-all font-mono text-zinc-500">Order: {o.id}</p></div>)}</section><section><h3 className="mb-3 text-sm font-semibold">Tickets & attendance history</h3>{profile.tickets.map(t=><div key={t.id} className="space-y-2 border-t border-white/10 py-3 text-xs"><p>{eventMap.get(t.event_id)?.name||t.event_id} / {t.status}</p><p className="text-zinc-500">Check-in: {stamp(t.scanned_at)}</p><Link target="_blank" rel="noopener noreferrer" href={`/ticket/${t.id}`} className="break-all text-[#e2d4ae] underline">View pass {t.id.slice(0,8)}</Link></div>)}{!profile.tickets.length&&<p className="text-xs text-zinc-500">No tickets on paid orders in this view.</p>}</section></div></div>}
+ </div>;
 }

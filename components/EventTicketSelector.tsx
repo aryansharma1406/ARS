@@ -5,26 +5,34 @@ import { formatINR } from '@/lib/utils';
 import { Lock,Minus,Plus,Ticket,Zap } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import PassTierChoices from '@/components/PassTierChoices';
+import {availableTier,type PassTier} from '@/lib/pass-tiers';
 
 interface EventTicketSelectorProps {
   event: Event;
   sourceCode?: string;
   remaining: number;
+  tiers: PassTier[];
 }
 
-export default function EventTicketSelector({ event, sourceCode, remaining }: EventTicketSelectorProps) {
+export default function EventTicketSelector({ event, sourceCode, remaining: eventRemaining, tiers }: EventTicketSelectorProps) {
   const router = useRouter();
   const [quantity, setQuantity] = useState(1);
-  const isSoldOut = remaining <= 0;
+  const [tierId,setTierId]=useState(()=>tiers.find(t=>availableTier(t,Date.now()))?.id||tiers[0]?.id||'');
+  const selected=tiers.find(t=>t.id===tierId);
+  const remaining=Math.min(eventRemaining,selected?.available||0);
+  const isSoldOut = remaining <= 0 || !selected || !availableTier(selected,Date.now());
 
-  const unitPrice = event.ticket_price;
+  const unitPrice = selected?.price || 0;
   const subtotal = unitPrice * quantity;
   const platformFee = Math.round(subtotal * 0.03); // 3% fee
   const total = subtotal + platformFee;
 
   const handleProceed = () => {
+    if(!selected||!availableTier(selected,Date.now())||quantity>remaining)return;
     const query = new URLSearchParams();
     query.set('qty', quantity.toString());
+    query.set('tier',tierId);
     if (sourceCode) query.set('source', sourceCode);
     router.push(`/checkout/${event.id}?${query.toString()}`);
   };
@@ -33,10 +41,11 @@ export default function EventTicketSelector({ event, sourceCode, remaining }: Ev
     <>
     <div className="glass-panel p-6 sm:p-10 rounded-sm space-y-6 border border-border relative">
       <p className="eyebrow">Choose your access</p>
+      <PassTierChoices tiers={tiers} selected={tierId} onChange={id=>{setTierId(id);setQuantity(1);}}/>
       <div className="flex items-center justify-between border-b border-border/60 pb-4">
         <div>
           <span className="text-xs font-bold text-gray-400 uppercase">Ticket type</span>
-          <h3 className="text-2xl font-black uppercase text-white">General VIP Entry</h3>
+          <h3 className="text-2xl font-black uppercase text-white">{selected?.name||'Choose a pass'}</h3>
         </div>
         <div className="text-right">
           <span className="text-2xl font-black text-white">{formatINR(unitPrice)}</span>
@@ -102,7 +111,7 @@ export default function EventTicketSelector({ event, sourceCode, remaining }: Ev
         </div>
       ) : (
         <div className="p-4 rounded-sm bg-red-950/40 border border-red-500/40 text-center space-y-2">
-          <span className="font-bold text-red-400 text-sm block">Sold Out for This Date</span>
+          <span className="font-bold text-red-400 text-sm block">Selected pass unavailable</span>
           <p className="text-xs text-gray-400">Check back later or discover another night.</p>
         </div>
       )}

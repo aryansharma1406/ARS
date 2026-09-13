@@ -2,7 +2,10 @@
 
 import { X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import PassTierEditor from '@/components/PassTierEditor';
+import {defaultPassTier,editableTiers,type PassTierInput} from '@/lib/pass-tiers';
+import {getManagedPassTiers} from '@/lib/event-pass-tiers';
 import type { Event } from '@/lib/types';
 
 type EventFormMode = 'create' | 'edit';
@@ -58,12 +61,16 @@ export default function EventCreateForm({
 
   const [form, setForm] = useState<FormState>(defaults);
   const isEdit = mode === 'edit';
+  const [tiers,setTiers]=useState<PassTierInput[]>([defaultPassTier(defaults.ticket_price,defaults.ticket_capacity)]);
+  const [tiersReady,setTiersReady]=useState(!isEdit);
+  useEffect(()=>{if(!open)return;let cancelled=false;setTiersReady(false);if(isEdit&&event?.id){getManagedPassTiers(event.id).then(values=>{if(!cancelled){setTiers(editableTiers(values));setTiersReady(true);}}).catch(e=>{if(!cancelled)setError(e instanceof Error?e.message:'Unable to load tiers.');});}else{setTiers([defaultPassTier(defaults.ticket_price,defaults.ticket_capacity)]);setTiersReady(true);}return()=>{cancelled=true;};},[open,isEdit,event?.id,defaults.ticket_price,defaults.ticket_capacity]);
 
   async function save() {
+    if(!tiersReady||!tiers.length){setError('Load or add pass tiers before saving.');return;}
     setBusy(true);
     setError('');
 
-    const payload: FormState = {
+    const payload: FormState & {tiers:PassTierInput[]} = {
       ...form,
       venue_id: venueId,
       name: form.name.trim(),
@@ -73,8 +80,9 @@ export default function EventCreateForm({
       date: form.date,
       start_time: form.start_time,
       end_time: form.end_time,
-      ticket_price: Number(form.ticket_price),
-      ticket_capacity: Number(form.ticket_capacity),
+      ticket_price: Math.min(...tiers.map(t=>Number(t.price))),
+      ticket_capacity: tiers.reduce((sum,t)=>sum+Number(t.capacity),0),
+      tiers: editableTiers(tiers),
       age_limit: Number(form.age_limit),
       published: form.published,
     };
@@ -153,7 +161,12 @@ export default function EventCreateForm({
       )}
 
       {open && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/85 p-4 backdrop-blur-sm">
+        <div
+          className="fixed inset-0 z-50 overflow-y-auto bg-black/85 p-4 backdrop-blur-sm"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) setOpen(false);
+          }}
+        >
           <div className="mx-auto my-6 max-w-3xl border border-white/15 bg-[#0b0b0b] p-6 sm:p-8">
             <div className="flex items-center justify-between">
               <div>
@@ -181,8 +194,6 @@ export default function EventCreateForm({
                   <label className="text-xs text-zinc-400">Date<input type="date" required className={`${input} mt-2`} value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></label>
                   <label className="text-xs text-zinc-400">Start<input type="time" required className={`${input} mt-2`} value={form.start_time} onChange={(e) => setForm({ ...form, start_time: e.target.value })} /></label>
                   <label className="text-xs text-zinc-400">End<input type="time" required className={`${input} mt-2`} value={form.end_time} onChange={(e) => setForm({ ...form, end_time: e.target.value })} /></label>
-                  <label className="text-xs text-zinc-400">Ticket price ₹<input type="number" min="1" className={`${input} mt-2`} value={form.ticket_price} onChange={(e) => setForm({ ...form, ticket_price: Number(e.target.value) })} /></label>
-                  <label className="text-xs text-zinc-400">Capacity<input type="number" min="1" className={`${input} mt-2`} value={form.ticket_capacity} onChange={(e) => setForm({ ...form, ticket_capacity: Number(e.target.value) })} /></label>
                 </div>
               </section>
 
@@ -196,6 +207,7 @@ export default function EventCreateForm({
                 </label>
               </section>
 
+              {tiersReady&&<PassTierEditor value={tiers} onChange={setTiers} disabled={busy}/>}
               {error && <p role="alert" className="text-sm text-red-400">{error}</p>}
 
               <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">

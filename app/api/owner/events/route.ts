@@ -20,7 +20,7 @@ export async function POST(request: Request) {
     checkOrigin(request);
     await requireOwner();
     const body = await jsonBody(request);
-    onlyFields(body, ['venue_id', 'name', 'description', 'image', 'category', 'date', 'start_time', 'end_time', 'ticket_price', 'ticket_capacity', 'age_limit', 'published']);
+    onlyFields(body, ['venue_id', 'name', 'description', 'image', 'category', 'date', 'start_time', 'end_time', 'ticket_price', 'ticket_capacity', 'age_limit', 'published','tiers']);
     const event = await addEvent(body as unknown as Omit<Event,'id'|'created_at'|'tickets_sold'>);
     return NextResponse.json({ event }, { status: 201 });
   } catch (error) {
@@ -51,6 +51,7 @@ export async function PATCH(request: Request) {
       'ticket_capacity',
       'age_limit',
       'published',
+      'tiers',
     ]);
 
     await requireVenueAccess(String(body.venue_id || ''));
@@ -66,6 +67,7 @@ export async function PATCH(request: Request) {
       ticket_capacity: body.ticket_capacity as number | undefined,
       age_limit: body.age_limit as number | undefined,
       published: body.published as boolean | undefined,
+      tiers: body.tiers as Event['tiers'],
     }, String(body.venue_id));
 
     return NextResponse.json({ event });

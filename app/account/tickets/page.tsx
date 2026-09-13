@@ -2,6 +2,7 @@ import { requirePage, requireRole } from '@/lib/auth';
 import { getCustomerTickets } from '@/lib/store';
 import type { Event } from '@/lib/types';
 import MemberPassCollection from '@/components/MemberPassCollection';
+import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,13 +18,13 @@ export default async function MyTickets({ searchParams }: { searchParams: Promis
     events.set(row.id, { ...row, venue_name: venue?.name } as unknown as Event);
   }
   const params = await searchParams;
-  return <MemberPassCollection
+  return <><div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-5 pt-6 text-xs text-zinc-400"><span>Your account. Your passes.</span><Link href="/account/profile" className="text-[#cbb88a] underline underline-offset-4">Manage account</Link></div><MemberPassCollection
     key={JSON.stringify(params)}
-    customer={{ name: customer.name, email: customer.email, userId: customer.userId }}
+    customer={{ name: customer.name || 'ARS Member', email: customer.phone || customer.email, userId: customer.userId }}
     tickets={tickets.map(({ qr_token, ...ticket }) => ticket)}
     eventList={[...events.values()]}
     params={params}
     eventDetailsUnavailable={Boolean(result?.error)}
     now={Date.now()}
-  />;
+  /></>;
 }

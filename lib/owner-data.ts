@@ -219,7 +219,7 @@ export function customersForVenue(data: OwnerVenueData, range: DateFilter = 'ALL
   const eventAttendance = new Map<string, Set<string>>();
 
   paidTickets.forEach(ticket => {
-    const key = ticket.customer_email.toLowerCase();
+    const key = (ticket.customer_id || ticket.customer_email.toLowerCase() || ticket.id);
     if (!eventAttendance.has(key)) eventAttendance.set(key, new Set());
     if (ticket.event_id && ticket.status === 'USED') eventAttendance.get(key)?.add(ticket.event_id);
   });
@@ -240,7 +240,7 @@ export function customersForVenue(data: OwnerVenueData, range: DateFilter = 'ALL
   }>();
 
   paidOrders.forEach(order => {
-    const key = order.customer_email.toLowerCase();
+    const key = (order.customer_id || order.customer_email.toLowerCase() || order.id);
     const row = map.get(key) || {
       name: order.customer_name,
       email: order.customer_email,
@@ -266,7 +266,7 @@ export function customersForVenue(data: OwnerVenueData, range: DateFilter = 'ALL
   });
 
   paidTickets.filter(t => t.status === 'USED').forEach(ticket => {
-    const row = map.get(ticket.customer_email.toLowerCase());
+    const row = map.get((ticket.customer_id || ticket.customer_email.toLowerCase() || ticket.id));
     if (!row) return;
     row.used += 1;
     if (ticket.scanned_at && ticket.scanned_at > row.lastVisit) row.lastVisit = ticket.scanned_at;
@@ -275,7 +275,7 @@ export function customersForVenue(data: OwnerVenueData, range: DateFilter = 'ALL
   paidTickets.forEach(ticket => {
     const order = paidOrders.find(order => order.id === ticket.order_id);
     if (!order) return;
-    const customer = map.get(ticket.customer_email.toLowerCase());
+    const customer = map.get((ticket.customer_id || ticket.customer_email.toLowerCase() || ticket.id));
     if (!customer) return;
 
     const row = {

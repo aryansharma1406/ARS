@@ -69,10 +69,10 @@ export async function updateVenue(id: string, payload: Partial<Venue>): Promise<
   return rpc('save_venue', { payload, target_id: id });
 }
 export async function addEvent(payload: Omit<Event,'id'|'created_at'|'tickets_sold'>): Promise<Event> {
-  await businessAccess(payload.venue_id); return rpc('save_event', { payload });
+  await businessAccess(payload.venue_id); return rpc(payload.tiers ? 'save_event_with_tiers' : 'save_event', { payload });
 }
 export async function updateEvent(id: string, payload: Partial<Event>, venueId?: string): Promise<Event> {
-  await businessAccess(venueId); return rpc('save_event', { payload, target_id: id, target_venue: venueId || null });
+  await businessAccess(venueId); return rpc(payload.tiers ? 'save_event_with_tiers' : 'save_event', { payload, target_id: id, target_venue: venueId || null });
 }
 export async function getSources(venueId?: string): Promise<Source[]> {
   const auth = await businessAccess(venueId);

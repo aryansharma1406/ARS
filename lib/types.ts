@@ -56,6 +56,7 @@ export interface Venue {
 }
 
 export interface Event {
+  tiers?: import('./pass-tiers').PassTierInput[];
   id: string;
   venue_id: string;
   venue_name?: string;
@@ -88,6 +89,10 @@ export type PaymentStatus = 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED';
 export type TicketStatus = 'VALID' | 'USED' | 'PAYMENT_FAILED' | 'REFUNDED';
 
 export interface Order {
+  ticket_tier_id?: string | null;
+  tier_unit_price?: number | null;
+  tier_description?: string;
+  tier_benefits?: string[];
   promoter_commission_percentage?: number | null;
   referral_visit_id?: string | null;
   original_subtotal?: number;
@@ -112,6 +117,10 @@ export interface Order {
 }
 
 export interface Ticket {
+  ticket_tier_id?: string | null;
+  tier_unit_price?: number | null;
+  tier_description?: string;
+  tier_benefits?: string[];
   id: string;
   order_id: string;
   event_id: string;

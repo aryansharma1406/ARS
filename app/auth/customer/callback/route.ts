@@ -22,12 +22,16 @@ export async function GET(request: Request) {
     const { error } = await client.auth.exchangeCodeForSession(code, flowId ? { flowId } : undefined);
     if (error) return failure('auth_callback');
     try {
-      await requireRole('customer');
+      const customer = await requireRole('customer');
+      if (!customer.name?.trim() && url.searchParams.get('flow') !== 'recovery') {
+        const onboarding = `/account/onboarding?next=${encodeURIComponent(next)}`;
+        return NextResponse.redirect(new URL(`/account/location?next=${encodeURIComponent(onboarding)}`, origin), { headers: { 'Cache-Control': 'private, no-store' } });
+      }
     } catch {
       await client.auth.signOut({ scope: 'local' });
       return failure('customer_access');
     }
-    const destination = url.searchParams.get('flow') === 'recovery' ? '/reset-password' : next;
+    const destination = url.searchParams.get('flow') === 'recovery' ? '/reset-password' : `/account/location?next=${encodeURIComponent(next)}`;
     return NextResponse.redirect(new URL(destination, origin), { headers: { 'Cache-Control': 'private, no-store' } });
   } catch { return failure('auth_callback'); }
 }

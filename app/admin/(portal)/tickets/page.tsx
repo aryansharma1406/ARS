@@ -1,113 +1,66 @@
 'use client';
-
-import { LiveSearchInput, SearchHighlight } from '@/components/LiveSearch';
-import { matchesSearch } from '@/lib/search';
-
-
-import { EmptyState, PageLoading } from '@/components/PageState';
-
-import { getTickets } from '@/lib/store';
-import { Ticket } from '@/lib/types';
-import { downloadCSV } from '@/lib/utils';
-import { AlertTriangle,CheckCircle2,Download,Search } from 'lucide-react';
+import {useEffect,useRef,useState} from 'react';
 import Link from 'next/link';
-import { useEffect,useState } from 'react';
+import {QRCodeSVG} from 'qrcode.react';
+import {getAdminTicketReport,getAdminTicketScans} from '@/lib/admin-ticket-report';
+import {LiveSearchInput,SearchHighlight} from '@/components/LiveSearch';
+import {matchesSearch} from '@/lib/search';
+import {PageLoading} from '@/components/PageState';
+import type {Ticket,Order} from '@/lib/types';
 
-export default function AdminTicketsPage() {
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState('');
-  const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [search, setSearch] = useState('');
+type Data=Awaited<ReturnType<typeof getAdminTicketReport>>;
+type Row={id:string;ticket?:Ticket;order?:Order;event:string;venue:string;venueId:string;eventId:string};
+const money=(n:number)=>new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',minimumFractionDigits:2,maximumFractionDigits:2}).format(n);
+const time=(value?:string)=>value&&Number.isFinite(Date.parse(value))?new Intl.DateTimeFormat('en-IN',{dateStyle:'medium',timeStyle:'short',timeZone:'Asia/Kolkata'}).format(new Date(value)):'Not recorded';
+const short=(id:string)=>id.length>16?`${id.slice(0,8)}...${id.slice(-4)}`:id;
+const entry=(ticket?:Ticket)=>!ticket?'Not issued':ticket.status==='USED'?'Checked in':ticket.status==='VALID'?'Pending entry':ticket.status==='REFUNDED'?'Refunded':'Invalid';
+function Badge({value}:{value:string}){return <span className={`inline-block whitespace-nowrap rounded-full border px-2 py-1 text-[10px] ${['PAID','Checked in'].includes(value)?'border-emerald-500/30 bg-emerald-950/30 text-emerald-300':['PENDING','Pending entry'].includes(value)?'border-[#cbb88a]/30 bg-[#cbb88a]/10 text-[#e2d4ae]':['FAILED','REFUNDED','Refunded','Invalid'].includes(value)?'border-red-400/30 text-red-300':'border-white/15 text-zinc-400'}`}>{value}</span>;}
 
-  useEffect(() => {
-    loadTicketsAndOrders();
-  }, []);
-
-  const loadTicketsAndOrders = async () => {
-    setLoadError('');
-    try {
-    const tkts = await getTickets();
-    setTickets(tkts);
-    } catch (error) {
-      setLoadError(error instanceof Error ? error.message : 'Unable to load records.');
-    } finally { setLoading(false); }
-  };
-
-  const filteredTickets = tickets.filter(t => matchesSearch(search, [t.id, t.order_id, t.customer_name, t.customer_email, t.customer_phone, t.event_name, t.venue_name, t.source_code, t.qr_token, t.ticket_type]));
-
-  const handleExportCSV = () => {
-    const exportData = filteredTickets.map(t => ({
-      'Ticket ID': t.id,
-      'Customer Name': t.customer_name,
-      'Customer Email': t.customer_email,
-      'Customer Phone': t.customer_phone,
-      'Event': t.event_name,
-      'Venue': t.venue_name,
-      'Source Code': t.source_code || 'Direct',
-      'QR Token': t.qr_token,
-      'Entry Status': t.status,
-      'Scanned At': t.scanned_at || 'Not Scanned',
-      'Created At': t.created_at,
-    }));
-    downloadCSV('ARS_Ticket_Sales.csv', exportData);
-  };
-
-  if (loading) return <PageLoading/>;
-
-  return (
-    <div className="space-y-6">
-      {loadError ? <div role="alert" className="border-l-2 border-red-400 bg-red-950/20 p-5 text-sm text-red-200"><p>{loadError}</p><button className="ars-button ars-button-secondary mt-4" onClick={() => void loadTicketsAndOrders()}>Retry loading</button></div> : !filteredTickets.length && <EmptyState title="No tickets to display" copy="Records matching this view will appear here when available."/>}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-black uppercase text-white">Tickets & transaction log</h2>
-          <p className="text-xs text-zinc-400">View guest passes, QR tokens, payment status, and promoter sources.</p>
-        </div>
-        <button onClick={handleExportCSV} className="ars-button flex items-center gap-2">
-          <Download className="w-4 h-4 text-accent-cyan" /> Export Ticket Sales CSV
-        </button>
-      </div>
-
-      <LiveSearchInput value={search} onChange={setSearch} placeholder="Search guest, event, venue, booking or pass" className="max-w-xl"/>
-      <p role="status" className="text-xs text-zinc-500">{filteredTickets.length} matching tickets</p>
-
-      <div className="ars-card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-zinc-300">
-            <thead className="bg-black/30 text-zinc-500 uppercase text-[10px] font-black border-b border-white/10">
-              <tr>
-                <th className="px-6 py-4">Ticket pass</th>
-                <th className="px-6 py-4">Customer details</th>
-                <th className="px-6 py-4">Event & venue</th>
-                <th className="px-6 py-4">Source code</th>
-                <th className="px-6 py-4">Door status</th>
-                <th className="px-6 py-4 text-right">Pass view</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {filteredTickets.map((t) => (
-                <tr key={t.id} className="hover:bg-black/40 transition-colors">
-                  <td className="px-6 py-4 font-mono font-black text-white"><span className="block text-accent-cyan"><SearchHighlight query={search}>{t.qr_token}</SearchHighlight></span><span className="text-[10px] text-zinc-500 font-normal">Booking: <SearchHighlight query={search}>{t.order_id}</SearchHighlight><br/>ID: <SearchHighlight query={search}>{t.id}</SearchHighlight></span></td>
-                  <td className="px-6 py-4"><strong className="text-white block"><SearchHighlight query={search}>{t.customer_name}</SearchHighlight></strong><span className="text-[11px] text-zinc-400 block"><SearchHighlight query={search}>{t.customer_email}</SearchHighlight></span><span className="text-[11px] text-zinc-500"><SearchHighlight query={search}>{t.customer_phone}</SearchHighlight></span></td>
-                  <td className="px-6 py-4"><strong className="text-white block"><SearchHighlight query={search}>{t.event_name}</SearchHighlight></strong><span className="text-[11px] text-accent-purple"><SearchHighlight query={search}>{t.venue_name}</SearchHighlight></span></td>
-                  <td className="px-6 py-4">
-                    {t.source_code ? <span className="px-2.5 py-1 rounded bg-accent-pink/20 border border-accent-pink/40 text-accent-pink font-mono text-[11px]"><SearchHighlight query={search}>{t.source_code}</SearchHighlight></span> : <span className="text-zinc-500 italic">Direct organic</span>}
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-black inline-flex items-center gap-1 ${
-                      t.status === 'VALID' ? 'bg-emerald-950 text-emerald-300 border border-emerald-500/40' : t.status === 'USED' ? 'bg-amber-950 text-amber-300 border border-amber-500/40' : 'bg-red-950 text-red-300'
-                    }`}>
-                      {t.status === 'VALID' && <CheckCircle2 className="w-3 h-3 text-emerald-400" />}
-                      {t.status === 'USED' && <AlertTriangle className="w-3 h-3 text-amber-400" />}
-                      {t.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right"><Link href={`/ticket/${t.id}`} target="_blank" className="text-xs font-black text-accent-purple">Open pass →</Link></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
+export default function AdminTicketsPage(){
+  const [data,setData]=useState<Data|null>(null);const [error,setError]=useState('');
+  const [search,setSearch]=useState('');const [venue,setVenue]=useState('all');const [event,setEvent]=useState('all');const [payment,setPayment]=useState('all');const [door,setDoor]=useState('all');const [source,setSource]=useState('all');const [range,setRange]=useState('ALL');const [from,setFrom]=useState('');const [to,setTo]=useState('');const [sort,setSort]=useState('newest');const [page,setPage]=useState(1);const [size,setSize]=useState(25);const [selected,setSelected]=useState<Row|null>(null);const [notice,setNotice]=useState('');const [asOf,setAsOf]=useState(()=>Date.now());
+  const [scans,setScans]=useState<Awaited<ReturnType<typeof getAdminTicketScans>>>([]);const [scanError,setScanError]=useState('');const [scanLoading,setScanLoading]=useState(false);const drawer=useRef<HTMLDivElement>(null);
+  async function load(){setError('');try{setData(await getAdminTicketReport());setAsOf(Date.now());}catch(e){setError(e instanceof Error?e.message:'Unable to load tickets and orders.');}}
+  useEffect(()=>{void load();},[]);
+  useEffect(()=>{setPage(1);},[search,venue,event,payment,door,source,range,from,to,sort,size]);
+  useEffect(()=>{
+    if(!selected)return;
+    const before=document.activeElement as HTMLElement|null;drawer.current?.focus();const overflow=document.body.style.overflow;document.body.style.overflow='hidden';
+    const key=(e:KeyboardEvent)=>{if(e.key==='Escape')setSelected(null);if(e.key==='Tab'){const nodes=drawer.current?.querySelectorAll<HTMLElement>('button:not([disabled]),a[href],input,select,[tabindex="0"]');if(!nodes?.length)return;const first=nodes[0],last=nodes[nodes.length-1];if(e.shiftKey&&(document.activeElement===first||document.activeElement===drawer.current)){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}};
+    document.addEventListener('keydown',key);return()=>{document.body.style.overflow=overflow;document.removeEventListener('keydown',key);before?.focus();};
+  },[selected]);
+  useEffect(()=>{
+    let active=true;setScans([]);setScanError('');setScanLoading(Boolean(selected?.ticket));
+    if(selected?.ticket)getAdminTicketScans(selected.ticket.id).then(rows=>{if(active)setScans(rows);}).catch(()=>{if(active)setScanError('Scan history is unavailable.');}).finally(()=>{if(active)setScanLoading(false);});
+    return()=>{active=false;};
+  },[selected]);
+  async function copy(value:string){try{await navigator.clipboard.writeText(value);setNotice('ID copied.');}catch{setNotice('Clipboard unavailable. Open details to select the full ID.');}}
+  if(!data)return error?<div className="ars-card p-6"><p role="alert">{error}</p><button onClick={()=>void load()} className="ars-button mt-4">Retry</button></div>:<PageLoading/>;
+  const orderMap=new Map(data.orders.map(o=>[o.id,o]));const eventMap=new Map(data.events.map(e=>[e.id,e]));const venueMap=new Map(data.venues.map(v=>[v.id,v]));
+  function make(ticket:Ticket|undefined,order:Order|undefined):Row{const eventId=ticket?.event_id||order?.event_id||'';const e=eventMap.get(eventId);return {id:ticket?.id||`order-${order!.id}`,ticket,order,eventId,event:e?.name||ticket?.event_name||'Event unavailable',venueId:e?.venue_id||'',venue:venueMap.get(e?.venue_id||'')?.name||ticket?.venue_name||'Venue unavailable'};}
+  const ticketOrders=new Set(data.tickets.map(t=>t.order_id));const rows=[...data.tickets.map(t=>make(t,orderMap.get(t.order_id))),...data.orders.filter(o=>!ticketOrders.has(o.id)).map(o=>make(undefined,o))];
+  const today=new Date(asOf+330*60000).toISOString().slice(0,10);const day=86400000;let start=-Infinity,end=asOf;
+  if(range==='TODAY')start=Date.parse(`${today}T00:00:00+05:30`);else if(['7','30','90'].includes(range))start=asOf-Number(range)*day;else if(range==='CUSTOM'){start=Date.parse(`${from}T00:00:00+05:30`);end=Math.min(asOf,Date.parse(`${to}T23:59:59.999+05:30`));}
+  const invalid=range==='CUSTOM'&&(!Number.isFinite(start)||!Number.isFinite(end)||start>end);
+  const filtered=rows.filter(r=>!invalid&&(venue==='all'||r.venueId===venue)&&(event==='all'||r.eventId===event)&&(payment==='all'||r.order?.payment_status===payment)&&(door==='all'||entry(r.ticket)===door)&&(source==='all'||(r.order?.source_code||r.ticket?.source_code||'DIRECT')===source)&&Date.parse(r.order?.created_at||r.ticket?.created_at||'')>=start&&Date.parse(r.order?.created_at||r.ticket?.created_at||'')<=end&&matchesSearch(search,[r.ticket?.id,r.order?.id,r.ticket?.order_id,r.ticket?.customer_name,r.ticket?.customer_email,r.ticket?.customer_phone,r.order?.customer_name,r.order?.customer_email,r.order?.customer_phone,r.event,r.venue,r.order?.source_code,r.ticket?.source_code,r.ticket?.ticket_type]));
+  filtered.sort((a,b)=>sort==='customer'?(a.ticket?.customer_name||a.order?.customer_name||'').localeCompare(b.ticket?.customer_name||b.order?.customer_name||''):sort==='amount'?(Number(b.order?.total)||0)-(Number(a.order?.total)||0):(sort==='oldest'?1:-1)*(Date.parse(a.order?.created_at||a.ticket?.created_at||'')-Date.parse(b.order?.created_at||b.ticket?.created_at||'')));
+  const matchingOrders=[...new Map(filtered.filter(r=>r.order).map(r=>[r.order!.id,r.order!])).values()];const paid=matchingOrders.filter(o=>o.payment_status==='PAID');const pages=Math.max(1,Math.ceil(filtered.length/size));const current=Math.min(page,pages);const visible=filtered.slice((current-1)*size,current*size);
+  function csv(){const lines=[['Ticket ID','Order ID','Customer','Email','Event','Venue','Order total INR','Payment','Source','Entry Status','Purchase Time','Scan Time'],...filtered.map(r=>[r.ticket?.id||'',r.order?.id||r.ticket?.order_id||'',r.ticket?.customer_name||r.order?.customer_name||'',r.ticket?.customer_email||r.order?.customer_email||'',r.event,r.venue,r.order?String(r.order.total):'',r.order?.payment_status||'Unknown',r.order?.source_code||r.ticket?.source_code||'Direct',entry(r.ticket),time(r.order?.created_at),time(r.ticket?.scanned_at)])];const content=lines.map(line=>line.map(value=>{let text=String(value);if(/^[=+@\-\t\r]/.test(text))text="'"+text;return '"'+text.replace(/"/g,'""')+'"';}).join(',')).join('\r\n');const url=URL.createObjectURL(new Blob(['\ufeff'+content],{type:'text/csv;charset=utf-8;'}));const a=document.createElement('a');a.href=url;a.download='ARS-filtered-tickets-orders.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+  const sources=[...new Set(rows.map(r=>r.order?.source_code||r.ticket?.source_code).filter((s):s is string=>Boolean(s)))].sort();
+  return <div className="space-y-5"><header className="flex flex-wrap items-center justify-between gap-4"><div><p className="eyebrow">ARS / Sales & access</p><h2 className="mt-2 text-2xl font-bold">Tickets & Orders</h2></div><button onClick={csv} className="ars-button ars-button-secondary">Export filtered CSV</button></header>{error&&<p role="alert" className="text-red-300">{error}</p>}<p role="status" className="text-xs text-[#e2d4ae]">{notice}</p>
+    <div className="grid grid-cols-2 gap-3 xl:grid-cols-6">{[['Total Sales',money(paid.reduce((sum,o)=>sum+Number(o.total),0))],['Tickets Sold',paid.reduce((sum,o)=>sum+Number(o.quantity),0)],['Checked In',filtered.filter(r=>r.ticket?.status==='USED'&&r.order?.payment_status==='PAID').length],['Pending Entry',filtered.filter(r=>r.ticket?.status==='VALID'&&r.order?.payment_status==='PAID').length],['Refunds',`${matchingOrders.filter(o=>o.payment_status==='REFUNDED').length} orders`],['Conversion',matchingOrders.length?`${(paid.length/matchingOrders.length*100).toFixed(1)}%`:'No orders']].map(([label,value])=><div key={label} className="ars-card bg-gradient-to-br from-[#cbb88a]/[.06] to-transparent p-4"><p className="text-[9px] uppercase tracking-widest text-zinc-500">{label}</p><p className="mt-3 break-words text-xl font-semibold text-[#e2d4ae]">{value}</p></div>)}</div>
+    <section className="ars-card space-y-4 p-4"><div className="flex flex-wrap gap-2">{['ALL','TODAY','7','30','90','CUSTOM'].map(value=><button key={value} aria-pressed={range===value} onClick={()=>{setRange(value);if(value==='CUSTOM'){setFrom(today);setTo(today);}}} className={`ars-button !px-3 !py-2 !text-xs ${range===value?'':'ars-button-secondary'}`}>{value==='ALL'?'All time':value==='TODAY'?'Today':value==='CUSTOM'?'Custom':`${value}D`}</button>)}</div>{range==='CUSTOM'&&<div className="flex flex-wrap gap-3"><label className="text-xs text-zinc-400">From<input aria-label="From date" type="date" max={today} value={from} onChange={e=>setFrom(e.target.value)} className="ars-input mt-1 [color-scheme:dark]"/></label><label className="text-xs text-zinc-400">To<input aria-label="To date" type="date" max={today} value={to} onChange={e=>setTo(e.target.value)} className="ars-input mt-1 [color-scheme:dark]"/></label></div>}{invalid&&<p role="alert" className="text-xs text-amber-200">Choose a valid start and end date.</p>}
+    <LiveSearchInput value={search} onChange={setSearch} placeholder="Search customer, ticket, order, venue or event"/>
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5"><select aria-label="Venue" className="ars-select" value={venue} onChange={e=>{setVenue(e.target.value);setEvent('all');}}><option value="all">All venues</option>{data.venues.map(v=><option key={v.id} value={v.id}>{v.name}</option>)}</select><select aria-label="Event" className="ars-select" value={event} onChange={e=>setEvent(e.target.value)}><option value="all">All events</option>{data.events.filter(e=>venue==='all'||e.venue_id===venue).map(e=><option key={e.id} value={e.id}>{e.name}</option>)}</select><select aria-label="Payment status" className="ars-select" value={payment} onChange={e=>setPayment(e.target.value)}><option value="all">All payments</option>{['PAID','PENDING','FAILED','REFUNDED'].map(s=><option key={s}>{s}</option>)}</select><select aria-label="Entry status" className="ars-select" value={door} onChange={e=>setDoor(e.target.value)}><option value="all">All entry statuses</option>{['Checked in','Pending entry','Not issued','Refunded','Invalid'].map(s=><option key={s}>{s}</option>)}</select><select aria-label="Promoter source" className="ars-select" value={source} onChange={e=>setSource(e.target.value)}><option value="all">All promoters / sources</option><option value="DIRECT">Direct</option>{sources.map(s=><option key={s}>{s}</option>)}</select></div>
+    <div className="flex flex-wrap items-center justify-between gap-3"><button onClick={()=>{setSearch('');setVenue('all');setEvent('all');setPayment('all');setDoor('all');setSource('all');setRange('ALL');}} className="text-xs text-[#e2d4ae] underline">Clear filters</button><select aria-label="Sort" className="ars-select !w-auto" value={sort} onChange={e=>setSort(e.target.value)}><option value="newest">Purchase: newest first</option><option value="oldest">Purchase: oldest first</option><option value="amount">Order amount: highest first</option><option value="customer">Customer A-Z</option></select></div></section>
+    <details className="text-xs leading-6 text-zinc-500"><summary className="cursor-pointer text-[#e2d4ae]">Metric & export definitions</summary>Sales includes fees from distinct paid orders represented by matching rows. Tickets Sold counts the full quantity of those orders; entry metrics count matching passes only. Conversion means paid orders divided by all matching orders, not visitor conversion. Refunds counts orders marked refunded, not verified refund amounts. Amount is the full order total and repeats across its tickets; do not sum table or CSV amounts without deduplicating Order ID. Existing test orders remain included and are labelled. Date filters use order purchase time (ticket creation if the order is unavailable). Today and Custom use IST; other presets are rolling periods. CSV includes all filtered pages and excludes QR credentials.</details>
+    <div className="ars-card overflow-x-auto"><table className="w-full min-w-[1200px] text-left text-xs"><thead><tr>{['Ticket ID','Customer','Event','Venue','Amount (order)','Payment','Source','Entry Status','Purchase Time','Action'].map(label=><th key={label} scope="col" className="border-b border-white/10 p-3 text-[9px] uppercase tracking-widest text-zinc-500">{label}</th>)}</tr></thead><tbody>{visible.map(r=><tr key={r.id} onClick={()=>setSelected(r)} className="cursor-pointer border-b border-white/5 hover:bg-[#cbb88a]/[.04]"><td className="p-3"><button onClick={e=>{e.stopPropagation();setSelected(r);}} className="font-mono text-[#e2d4ae] underline underline-offset-4">{r.ticket?short(r.ticket.id):'Order / no ticket'}</button>{r.ticket&&<button aria-label="Copy ticket ID" onClick={e=>{e.stopPropagation();void copy(r.ticket!.id);}} className="ml-2 text-[9px] text-zinc-400">Copy</button>}<p className="mt-2 font-mono text-[9px] text-zinc-500">Order {short(r.order?.id||r.ticket?.order_id||'Unknown')}</p><button aria-label="Copy order ID" onClick={e=>{e.stopPropagation();void copy(r.order?.id||r.ticket?.order_id||'');}} className="mt-1 text-[9px] text-zinc-400">Copy order ID</button></td><td className="p-3"><p><SearchHighlight query={search}>{r.ticket?.customer_name||r.order?.customer_name||'Not recorded'}</SearchHighlight></p><p className="mt-1 text-[10px] text-zinc-500"><SearchHighlight query={search}>{r.ticket?.customer_email||r.order?.customer_email}</SearchHighlight></p></td><td className="p-3"><SearchHighlight query={search}>{r.event}</SearchHighlight></td><td className="p-3"><SearchHighlight query={search}>{r.venue}</SearchHighlight></td><td className="p-3 text-[#e2d4ae]">{r.order?money(Number(r.order.total)):'Unavailable'}</td><td className="p-3"><Badge value={r.order?.payment_status||'Unknown'}/>{r.order?.razorpay_payment_id?.startsWith('test_payment_')&&<p className="mt-1 text-[9px] text-amber-200">Test payment</p>}</td><td className="p-3"><SearchHighlight query={search}>{r.order?.source_code||r.ticket?.source_code||'Direct'}</SearchHighlight></td><td className="p-3"><Badge value={entry(r.ticket)}/></td><td className="p-3 text-zinc-400">{time(r.order?.created_at||r.ticket?.created_at)}</td><td className="p-3">{r.ticket?<Link onClick={e=>e.stopPropagation()} href={`/ticket/${r.ticket.id}`} target="_blank" rel="noopener noreferrer" className="whitespace-nowrap text-[#e2d4ae] underline">View Pass</Link>:<button onClick={()=>setSelected(r)} className="text-[#e2d4ae]">View Order</button>}</td></tr>)}</tbody></table>{!filtered.length&&<p className="p-10 text-center text-sm text-zinc-400">No tickets or orders match these filters.</p>}</div>
+    <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-zinc-400"><p>{filtered.length} rows / {matchingOrders.length} orders</p><div className="flex items-center gap-3"><select aria-label="Rows per page" className="ars-select !w-auto" value={size} onChange={e=>setSize(Number(e.target.value))}>{[25,50,100].map(n=><option key={n} value={n}>{n} rows</option>)}</select><button disabled={current===1} onClick={()=>setPage(current-1)} className="disabled:opacity-30">Previous</button><span>{current} / {pages}</span><button disabled={current===pages} onClick={()=>setPage(current+1)} className="disabled:opacity-30">Next</button></div></div>
+    {selected&&<div className="fixed inset-0 z-50 flex justify-end bg-black/75 backdrop-blur-sm" onClick={()=>setSelected(null)}><div ref={drawer} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="ticket-detail-title" onClick={e=>e.stopPropagation()} className="h-full w-full max-w-xl space-y-6 overflow-y-auto border-l border-[#cbb88a]/25 bg-[#0b0b09] p-6 outline-none sm:p-8"><header className="flex items-center justify-between"><h2 id="ticket-detail-title" className="text-xl font-bold">{selected.ticket?'Ticket & Order Details':'Order Details'}</h2><button onClick={()=>setSelected(null)} className="text-sm text-[#e2d4ae]">Close</button></header>
+    <div className="flex gap-2"><Badge value={selected.order?.payment_status||'Unknown'}/><Badge value={entry(selected.ticket)}/></div>
+    <dl className="space-y-3">{[['Ticket ID',selected.ticket?.id],['Order ID',selected.order?.id||selected.ticket?.order_id],['Customer',selected.ticket?.customer_name||selected.order?.customer_name],['Email',selected.ticket?.customer_email||selected.order?.customer_email],['Phone',selected.ticket?.customer_phone||selected.order?.customer_phone],['Event',selected.event],['Venue',selected.venue],['Ticket type',selected.ticket?.ticket_type||selected.order?.ticket_type],['Order quantity',selected.order?.quantity],['Original subtotal',selected.order?.original_subtotal==null?undefined:money(selected.order.original_subtotal)],['Discount',selected.order?.discount_amount==null?undefined:money(selected.order.discount_amount)],['Net subtotal',selected.order?money(selected.order.subtotal):undefined],['Fees',selected.order?money(selected.order.fees):undefined],['Order total',selected.order?money(selected.order.total):undefined],['Payment ID',selected.order?.razorpay_payment_id],['Payment order ID',selected.order?.razorpay_order_id],['Source',selected.order?.source_code||selected.ticket?.source_code||'Direct'],['Coupon',selected.order?.coupon_code],['Saved promoter rate',selected.order?.promoter_commission_percentage==null?undefined:`${selected.order.promoter_commission_percentage}%`],['Purchased',time(selected.order?.created_at)],['Last check-in',time(selected.ticket?.scanned_at)]].map(([label,value])=><div key={String(label)} className="grid grid-cols-[110px_1fr] gap-3 border-b border-white/5 pb-2 text-xs"><dt className="text-zinc-500">{label}</dt><dd className="break-all text-zinc-300">{value??'Not recorded'}</dd></div>)}</dl>
+    {selected.ticket&&<section className="space-y-3"><h3 className="text-sm font-semibold text-[#e2d4ae]">Digital credential</h3><p className="text-xs text-zinc-500">Private QR credential. Validity is determined by the existing scanner checks.</p><div className="inline-block rounded bg-white p-5"><QRCodeSVG value={selected.ticket.qr_token} size={180}/></div><div><Link className="ars-button" target="_blank" rel="noopener noreferrer" href={`/ticket/${selected.ticket.id}`}>View Pass</Link></div></section>}
+    <section><h3 className="mb-3 text-sm font-semibold text-[#e2d4ae]">Scan history</h3>{scanLoading?<p className="text-xs text-zinc-500">Loading scans...</p>:scanError?<p role="alert" className="text-xs text-amber-200">{scanError}</p>:!scans.length?<p className="text-xs text-zinc-500">No recorded scans.</p>:<ul className="space-y-3">{scans.map(scan=><li key={scan.id} className="rounded border border-white/10 p-3 text-xs"><p className="text-[#e2d4ae]">{scan.result} / {time(scan.scanned_at)}</p><p className="mt-2 break-all text-zinc-500">Staff: {scan.staff_id}</p><p className="mt-1 text-zinc-500">Gate: {scan.gate_name||'Not recorded'}</p></li>)}</ul>}</section>
+    </div></div>}
+  </div>;
 }

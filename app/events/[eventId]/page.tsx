@@ -1,5 +1,6 @@
 import FunnelObservation from '@/components/FunnelObservation';
 import EventTicketSelector from '@/components/EventTicketSelector';
+import {getEventPassTiers} from '@/lib/event-pass-tiers';
 import { getEventById } from '@/lib/store';
 import { formatDate,formatTime } from '@/lib/utils';
 import {
@@ -33,6 +34,7 @@ export default async function EventDetailPage({ params, searchParams }: EventDet
   }
 
   const remaining = Math.max(0, event.ticket_capacity - event.tickets_sold);
+  const tiers = await getEventPassTiers(event.id);
   const isSoldOut = remaining <= 0;
 
   return (
@@ -118,7 +120,7 @@ export default async function EventDetailPage({ params, searchParams }: EventDet
         </div>
 
         <div className="lg:col-span-5 lg:sticky lg:top-28">
-          <EventTicketSelector event={event} sourceCode={sourceCode} remaining={remaining} />
+          <EventTicketSelector event={event} sourceCode={sourceCode} remaining={remaining} tiers={tiers} />
         </div>
       </div>
     </div>

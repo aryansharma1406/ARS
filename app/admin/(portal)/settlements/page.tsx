@@ -1,99 +1,41 @@
 'use client';
+import {useEffect,useRef,useState} from 'react';
+import {getSettlementReports} from '@/lib/store';
+import type {Settlement} from '@/lib/types';
+import {PageLoading} from '@/components/PageState';
 
-import { EmptyState, PageLoading } from '@/components/PageState';
+type RecordRow=Settlement&{paid_at?:string;settled_at?:string;payout_reference?:string;transaction_id?:string;discount_amount?:number;original_gross_revenue?:number};
+const money=(value:number)=>new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(value));
+const date=(value?:string)=>value&&Number.isFinite(Date.parse(value))?new Intl.DateTimeFormat('en-IN',{dateStyle:'medium',timeStyle:'short',timeZone:'Asia/Kolkata'}).format(new Date(value)):'Not recorded';
+const estimate=(s:RecordRow)=>s.id.startsWith('estimate-');
+const status=(s:RecordRow)=>String(s.status)==='SETTLED'?'Paid':({PENDING:'Pending',PROCESSING:'Processing',PAID:'Paid',FAILED:'Failed'}[String(s.status)]||String(s.status));
+const paidAt=(s:RecordRow)=>s.paid_at||s.settled_at;
+const reference=(s:RecordRow)=>s.payout_reference||s.transaction_id||'Not recorded';
+function Badge({row}:{row:RecordRow}){return <span className={`inline-block rounded-full border px-2 py-1 text-[10px] ${estimate(row)?'border-white/20 text-zinc-400':status(row)==='Paid'?'border-emerald-500/30 text-emerald-300':status(row)==='Failed'?'border-red-400/30 text-red-300':'border-[#cbb88a]/30 text-[#e2d4ae]'}`}>{estimate(row)?'Estimate':status(row)}</span>;}
 
-import { getSettlementReports } from '@/lib/store';
-import { Settlement } from '@/lib/types';
-import { downloadCSV,formatINR } from '@/lib/utils';
-import { DollarSign,Download } from 'lucide-react';
-import { useEffect,useState } from 'react';
-
-export default function AdminSettlementsPage() {
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState('');
-  const [settlements, setSettlements] = useState<Settlement[]>([]);
-
-  useEffect(() => { loadSettlements(); }, []);
-
-  const loadSettlements = async () => {
-    setLoadError('');
-    try {
-    const data = await getSettlementReports();
-    setSettlements(data);
-    } catch (error) {
-      setLoadError(error instanceof Error ? error.message : 'Unable to load records.');
-    } finally { setLoading(false); }
-  };
-
-  const handleExportCSV = () => {
-    const exportData = settlements.map(s => ({
-      'Venue Name': s.venue_name,
-      'Event Name': s.event_name,
-      'Gross Revenue (INR)': s.gross_revenue,
-      'Refunds (INR)': s.refunds,
-      'Eligible Entry Revenue (INR)': s.eligible_revenue,
-      'Platform Commission Rate (%)': `${s.commission_percentage}%`,
-      'Platform Commission Earned (INR)': s.commission_amount,
-      'Net Payout Payable to Venue (INR)': s.venue_amount,
-      'Settlement Status': s.status,
-      'Created At': s.created_at,
-    }));
-    downloadCSV('ARS_Venue_Settlement_Report.csv', exportData);
-  };
-
-  const totalGross = settlements.reduce((sum, s) => sum + s.gross_revenue, 0);
-  const totalCommission = settlements.reduce((sum, s) => sum + s.commission_amount, 0);
-  const totalNetVenue = settlements.reduce((sum, s) => sum + s.venue_amount, 0);
-
-  if (loading) return <PageLoading/>;
-
-  return (
-    <div className="space-y-6">
-      {loadError ? <div role="alert" className="border-l-2 border-red-400 bg-red-950/20 p-5 text-sm text-red-200"><p>{loadError}</p><button className="ars-button ars-button-secondary mt-4" onClick={() => void loadSettlements()}>Retry loading</button></div> : !settlements.length && <EmptyState title="No settlements to display" copy="Records matching this view will appear here when available."/>}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-black uppercase text-white flex items-center gap-2"><DollarSign className="w-5 h-5 text-accent-emerald" /> Club settlement reports</h2>
-          <p className="text-xs text-zinc-400">Platform split between venue ticket payout and ARS commission.</p>
-        </div>
-        <button onClick={handleExportCSV} className="ars-button flex items-center gap-2"><Download className="w-4 h-4" /> Export settlement CSV</button>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-        <div className="ars-card p-6"><span className="text-xs text-zinc-500">Gross ticket revenue</span><div className="text-2xl font-black text-white">{formatINR(totalGross)}</div></div>
-        <div className="ars-card p-6"><span className="text-xs text-zinc-500">Platform commission</span><div className="text-2xl font-black text-accent-purple">{formatINR(totalCommission)}</div></div>
-        <div className="ars-card p-6"><span className="text-xs text-zinc-500">Net payable to venues</span><div className="text-2xl font-black text-accent-emerald">{formatINR(totalNetVenue)}</div></div>
-      </div>
-
-      <div className="ars-card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-zinc-300">
-            <thead className="bg-black/30 text-zinc-500 uppercase text-[10px] font-black border-b border-white/10">
-              <tr>
-                <th className="px-6 py-4">Venue & event</th>
-                <th className="px-6 py-4">Gross revenue</th>
-                <th className="px-6 py-4">Refunds</th>
-                <th className="px-6 py-4">Eligible entry revenue</th>
-                <th className="px-6 py-4">Commission %</th>
-                <th className="px-6 py-4">Platform commission</th>
-                <th className="px-6 py-4 text-right">Net venue payout</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {settlements.map((s) => (
-                <tr key={s.id} className="hover:bg-black/40 transition-colors">
-                  <td className="px-6 py-4"><strong className="text-white text-sm block">{s.event_name}</strong><span className="text-xs text-accent-purple">{s.venue_name}</span></td>
-                  <td className="px-6 py-4 font-black text-white">{formatINR(s.gross_revenue)}</td>
-                  <td className="px-6 py-4 text-zinc-400">{formatINR(s.refunds)}</td>
-                  <td className="px-6 py-4 font-semibold text-zinc-200">{formatINR(s.eligible_revenue)}</td>
-                  <td className="px-6 py-4 font-black text-accent-purple">{s.commission_percentage}%</td>
-                  <td className="px-6 py-4 font-black text-accent-pink">{formatINR(s.commission_amount)}</td>
-                  <td className="px-6 py-4 text-right font-black text-base text-accent-emerald">{formatINR(s.venue_amount)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
+export default function AdminSettlementsPage(){
+  const [rows,setRows]=useState<RecordRow[]>([]);const [loading,setLoading]=useState(true);const [error,setError]=useState('');const [venue,setVenue]=useState('all');const [event,setEvent]=useState('all');const [state,setState]=useState('all');const [range,setRange]=useState('ALL');const [from,setFrom]=useState('');const [to,setTo]=useState('');const [selected,setSelected]=useState<RecordRow|null>(null);const [now,setNow]=useState(()=>Date.now());const dialog=useRef<HTMLDivElement>(null);
+  async function load(){setLoading(true);setError('');try{setRows(await getSettlementReports());setNow(Date.now());}catch(e){setError(e instanceof Error?e.message:'Unable to load settlement reports.');}finally{setLoading(false);}}
+  useEffect(()=>{void load();},[]);
+  useEffect(()=>{if(!selected)return;const before=document.activeElement as HTMLElement|null;const previous=document.body.style.overflow;document.body.style.overflow='hidden';dialog.current?.focus();const key=(e:KeyboardEvent)=>{if(e.key==='Escape')setSelected(null);if(e.key==='Tab'){const nodes=dialog.current?.querySelectorAll<HTMLElement>('button:not([disabled]),a[href]');if(!nodes?.length)return;const first=nodes[0],last=nodes[nodes.length-1];if(e.shiftKey&&(document.activeElement===first||document.activeElement===dialog.current)){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}};document.addEventListener('keydown',key);return()=>{document.body.style.overflow=previous;document.removeEventListener('keydown',key);before?.focus();};},[selected]);
+  const today=new Date(now+330*60000).toISOString().slice(0,10);let start=-Infinity,end=now;
+  if(range==='TODAY')start=Date.parse(`${today}T00:00:00+05:30`);else if(['7','30','90'].includes(range))start=now-Number(range)*86400000;else if(range==='CUSTOM'){start=Date.parse(`${from}T00:00:00+05:30`);end=Math.min(now,Date.parse(`${to}T23:59:59.999+05:30`));}
+  const invalid=range==='CUSTOM'&&(!Number.isFinite(start)||!Number.isFinite(end)||start>end);
+  const filtered=rows.filter(s=>!invalid&&(venue==='all'||s.venue_id===venue)&&(event==='all'||s.event_id===event)&&(state==='all'||(state==='Estimate'?estimate(s):!estimate(s)&&status(s)===state))&&Date.parse(s.created_at)>=start&&Date.parse(s.created_at)<=end).sort((a,b)=>b.created_at.localeCompare(a.created_at));
+  const saved=filtered.filter(s=>!estimate(s));const sum=(key:'gross_revenue'|'refunds'|'commission_amount'|'venue_amount')=>filtered.reduce((n,s)=>n+Number(s[key]),0);
+  function exportRows(records:RecordRow[],filename:string){const lines=[['ARS Settlement Statement'],['Filter window',range,from,to],['Venue','Event','Settlement ID','Record Type','Status','Record Date IST','Payment Date IST','Payout Reference','Recorded Gross INR','Recorded Discount INR','Refunds INR','Eligible Revenue INR','ARS Commission %','ARS Commission INR','Net Venue Payout INR'],...records.map(s=>[s.venue_name||s.venue_id,s.event_name||s.event_id,s.id,estimate(s)?'Estimate':'Recorded',estimate(s)?'Estimate':status(s),date(s.created_at),date(paidAt(s)),reference(s),String(s.gross_revenue),s.discount_amount==null?'Not recorded':String(s.discount_amount),String(s.refunds),String(s.eligible_revenue),String(s.commission_percentage),String(s.commission_amount),String(s.venue_amount)]),['Notes','Read-only existing reports. Estimated gross is discounted ticket subtotal; do not subtract discounts again. Estimates are not payment obligations or confirmed transfers. Date filters use report creation time, not payment time.']];const csv=lines.map(line=>line.map(value=>{let text=String(value);if(/^[=+@\-\t\r]/.test(text))text="'"+text;return '"'+text.replace(/"/g,'""')+'"';}).join(',')).join('\r\n');const url=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'}));const a=document.createElement('a');a.href=url;a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+  if(loading)return <PageLoading/>;
+  return <div className="space-y-5"><header className="flex flex-wrap items-center justify-between gap-4"><div><p className="eyebrow">ARS / Financial ledger</p><h1 className="mt-2 text-3xl font-bold">Club Settlements</h1><p className="mt-2 text-xs text-zinc-400">Read-only venue statements and settlement history.</p></div><div className="flex flex-wrap gap-2"><button onClick={()=>void load()} className="ars-button ars-button-secondary">Refresh</button><button disabled={!filtered.length||Boolean(error)} onClick={()=>exportRows(filtered,'ARS-filtered-settlements.csv')} className="ars-button disabled:opacity-40">Export filtered CSV</button></div></header>
+    {error?<div role="alert" className="ars-card border-red-400/30 p-5 text-red-300"><p>{error}</p><button onClick={()=>void load()} className="ars-button ars-button-secondary mt-3">Retry loading</button></div>:<>
+    <div className="grid grid-cols-2 gap-3 xl:grid-cols-6">{[['Gross Revenue',money(sum('gross_revenue'))],['Refunds',money(sum('refunds'))],['ARS Commission',money(sum('commission_amount'))],['Net Venue Payable',money(sum('venue_amount'))],['Pending Settlements',saved.filter(s=>status(s)==='Pending').length],['Paid Settlements',saved.filter(s=>status(s)==='Paid').length]].map(([label,value])=><div key={label} className="ars-card bg-gradient-to-br from-[#cbb88a]/[.06] to-transparent p-4"><p className="text-[9px] uppercase tracking-widest text-zinc-500">{label}</p><p className="mt-3 break-words text-xl font-semibold text-[#e2d4ae]">{value}</p></div>)}</div>
+    <p className="text-xs text-zinc-500">Financial totals follow existing reports{filtered.some(estimate)?' and include estimates':''}. Pending/Paid counts exclude estimates. Recorded gross may already be after discounts.</p>
+    <section className="ars-card space-y-4 p-4"><div className="flex flex-wrap gap-2">{['ALL','TODAY','7','30','90','CUSTOM'].map(r=><button key={r} aria-pressed={range===r} className={`ars-button !px-3 !py-2 !text-xs ${range===r?'':'ars-button-secondary'}`} onClick={()=>{setRange(r);if(r==='CUSTOM'){setFrom(today);setTo(today);}}}>{r==='ALL'?'All time':r==='TODAY'?'Today':r==='CUSTOM'?'Custom':r+'D'}</button>)}</div>
+    {range==='CUSTOM'&&<div className="flex flex-wrap gap-3"><label className="text-xs">From<input type="date" max={today} value={from} onChange={e=>setFrom(e.target.value)} className="ars-input mt-1 [color-scheme:dark]"/></label><label className="text-xs">To<input type="date" max={today} value={to} onChange={e=>setTo(e.target.value)} className="ars-input mt-1 [color-scheme:dark]"/></label></div>}
+    <div className="grid gap-3 sm:grid-cols-3"><select aria-label="Venue" value={venue} onChange={e=>{setVenue(e.target.value);setEvent('all');}} className="ars-select"><option value="all">All venues</option>{[...new Map(rows.map(s=>[s.venue_id,s.venue_name||s.venue_id])).entries()].map(([id,name])=><option key={id} value={id}>{name}</option>)}</select><select aria-label="Event" value={event} onChange={e=>setEvent(e.target.value)} className="ars-select"><option value="all">All events</option>{[...new Map(rows.filter(s=>venue==='all'||s.venue_id===venue).map(s=>[s.event_id,s.event_name||s.event_id])).entries()].map(([id,name])=><option key={id} value={id}>{name}</option>)}</select><select aria-label="Settlement status" value={state} onChange={e=>setState(e.target.value)} className="ars-select"><option value="all">All statuses & estimates</option>{['Pending','Processing','Paid','Failed','Estimate'].map(s=><option key={s}>{s}</option>)}</select></div>{invalid&&<p role="alert" className="text-xs text-amber-200">Choose a valid date range.</p>}
+    <p className="text-xs text-zinc-500">Dates filter record creation in IST, not bank payment dates. Processing and Failed require recorded backend support; no status changes are made here.</p></section>
+    <section className="ars-card overflow-x-auto"><h2 className="p-5 text-sm font-semibold uppercase tracking-widest">Settlement history</h2><table className="w-full min-w-[1100px] text-left text-xs"><thead><tr>{['Venue / Event','Status','Recorded gross','Refunds','Eligible revenue','ARS commission','Net venue payout','Record date','Payment date','Payout reference'].map(h=><th key={h} className="border-y border-white/10 p-3 text-[9px] uppercase text-zinc-500">{h}</th>)}</tr></thead><tbody>{filtered.map(s=><tr key={s.id} onClick={()=>setSelected(s)} className="cursor-pointer border-b border-white/5 hover:bg-[#cbb88a]/[.04]"><td className="p-3"><button onClick={()=>setSelected(s)} className="text-left text-[#e2d4ae] underline underline-offset-4">{s.venue_name||s.venue_id}</button><p className="mt-1 text-zinc-500">{s.event_name||s.event_id}</p></td><td className="p-3"><Badge row={s}/></td>{[s.gross_revenue,s.refunds,s.eligible_revenue,s.commission_amount,s.venue_amount].map((n,i)=><td key={i} className="p-3 tabular-nums">{money(n)}</td>)}<td className="p-3 text-zinc-400">{date(s.created_at)}</td><td className="p-3 text-zinc-400">{date(paidAt(s))}</td><td className="max-w-40 break-all p-3 text-zinc-400">{reference(s)}</td></tr>)}</tbody></table>{!filtered.length&&<div className="p-10 text-center"><p className="font-semibold">No settlement reports in this view</p><p className="mt-2 text-xs text-zinc-500">Adjust the filters or check back when settlement records are available.</p></div>}</section>
+    <section className="ars-card p-5"><h2 className="text-sm font-semibold">Venue statements</h2><p className="mt-2 text-xs text-zinc-500">Each download includes only this venue's rows matching the active filters.</p><div className="mt-4 flex flex-wrap gap-3">{[...new Map(filtered.map(s=>[s.venue_id,s.venue_name||s.venue_id])).entries()].map(([id,name])=><button key={id} onClick={()=>exportRows(filtered.filter(s=>s.venue_id===id),`ARS-venue-${id}-statement.csv`)} className="ars-button ars-button-secondary !px-3 !py-2 !text-xs">{name} / Download statement</button>)}</div></section>
+    </>}
+    {selected&&<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm" onClick={()=>setSelected(null)}><div ref={dialog} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="settlement-title" onClick={e=>e.stopPropagation()} className="ars-card max-h-[90dvh] w-full max-w-xl space-y-5 overflow-y-auto p-6 outline-none"><div className="flex items-start justify-between gap-4"><div><p className="eyebrow">Settlement breakdown</p><h2 id="settlement-title" className="mt-2 text-xl font-bold">{selected.venue_name}</h2><p className="mt-1 text-sm text-zinc-500">{selected.event_name}</p></div><button onClick={()=>setSelected(null)} className="text-sm text-[#e2d4ae]">Close</button></div><Badge row={selected}/><dl className="space-y-3">{[['Gross before discounts',selected.original_gross_revenue==null?'Not separately recorded':money(selected.original_gross_revenue)],['Discounts',selected.discount_amount==null?'Not separately recorded':money(selected.discount_amount)],['Recorded gross',money(selected.gross_revenue)],['Refunds',money(selected.refunds)],['Eligible revenue',money(selected.eligible_revenue)],[`ARS commission (${selected.commission_percentage}%)`,money(selected.commission_amount)],['Net venue payout',money(selected.venue_amount)]].map(([label,value])=><div key={label} className="flex justify-between gap-4 border-b border-white/10 pb-3 text-sm"><dt className="text-zinc-400">{label}</dt><dd className="text-right font-semibold text-[#e2d4ae]">{value}</dd></div>)}</dl><p className="text-xs leading-6 text-zinc-500">Existing settlement amounts are displayed unchanged. A missing pre-discount gross or discount snapshot cannot be reconstructed reliably from current sales. Do not subtract discounts again from a net recorded gross. {estimate(selected)?'This is an estimate, not a recorded payout.':'Paid denotes the stored settlement status, not independent bank confirmation.'}</p><dl className="space-y-2 text-xs">{[['ID',selected.id],['Record date',date(selected.created_at)],['Payment date',date(paidAt(selected))],['Payout reference',reference(selected)]].map(([label,value])=><div key={label}><dt className="text-zinc-500">{label}</dt><dd className="mt-1 break-all">{value}</dd></div>)}</dl><button className="ars-button" onClick={()=>exportRows([selected],`ARS-settlement-${selected.id}.csv`)}>Download breakdown</button></div></div>}
+  </div>;
 }

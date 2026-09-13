@@ -9,6 +9,8 @@ import { createVenueWithOwner, editAdminVenue } from '@/lib/admin-venues';
 import { Venue } from '@/lib/types';
 import { MapPin,Plus,Power,Pencil } from 'lucide-react';
 import CatalogImage from '@/components/CatalogImage';
+import VenuePhotoUpload from '@/components/VenuePhotoUpload';
+import VenueModalOverlay from '@/components/VenueModalOverlay';
 import React,{ useEffect,useState } from 'react';
 
 export default function AdminVenuesPage() {
@@ -32,6 +34,7 @@ export default function AdminVenuesPage() {
   const [assignOwner, setAssignOwner] = useState(true);
   const [owner, setOwner] = useState({ name: '', email: '', phone: '' });
   const [saving, setSaving] = useState(false);
+  const [uploadingPhoto,setUploadingPhoto]=useState(false);
   const [saveError, setSaveError] = useState('');
   const [editingVenue, setEditingVenue] = useState<Venue | null>(null);
   const [deletingVenue, setDeletingVenue] = useState<Venue | null>(null);
@@ -62,7 +65,7 @@ export default function AdminVenuesPage() {
 
   const handleCreateVenue = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (saving) return;
+    if (saving || uploadingPhoto) return;
     setSaving(true);
     setSaveError('');
     try {
@@ -173,7 +176,7 @@ export default function AdminVenuesPage() {
       })()}
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+        <VenueModalOverlay>
           <div role="dialog" aria-modal="true" aria-label={editingVenue ? 'Edit venue details' : 'Add partner venue'} className="ars-card max-h-[90dvh] overflow-y-auto max-w-lg w-full p-6 sm:p-8 space-y-6">
             <h3 className="text-xl font-black text-white">{editingVenue ? 'Edit venue details' : 'Add partner venue'}</h3>
             <form onSubmit={handleCreateVenue} className="space-y-4 text-xs">
@@ -183,9 +186,9 @@ export default function AdminVenuesPage() {
                 <div><label className="ars-label">Platform commission %</label><input type="number" step="0.1" required placeholder="20.0" value={formData.commission_percentage} onChange={e => setFormData({ ...formData, commission_percentage: Number(e.target.value) })} className="ars-input" /></div>
               </div>
               <div><label className="ars-label">Full street address</label><input type="text" required placeholder="Tito's Lane, Baga" value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })} className="ars-input" /></div>
-              <div><label className="ars-label">Cover image URL</label><input type="url" required placeholder="https://images.unsplash.com/..." value={formData.image} onChange={e => setFormData({ ...formData, image: e.target.value })} className="ars-input" /></div>
+              <VenuePhotoUpload value={formData.image} onChange={image=>setFormData(prev=>({...prev,image}))} onBusyChange={setUploadingPhoto}/>
               <div><label className="ars-label">Club description</label><textarea rows={3} required placeholder="High-energy nightclub details" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} className="ars-textarea" /></div>
-              <fieldset className="space-y-4 border-t border-white/10 pt-5" disabled={saving}>
+              <fieldset className="space-y-4 border-t border-white/10 pt-5" disabled={saving || uploadingPhoto}>
                 <legend className="px-1 text-sm font-bold text-white">Owner</legend>
                 <label className="flex items-center gap-3 text-zinc-300">
                   <input type="checkbox" checked={assignOwner} disabled={Boolean(editingVenue && !editingVenue.owner_email)} onChange={e => setAssignOwner(e.target.checked)} className="accent-[#cbb88a]" />
@@ -200,12 +203,12 @@ export default function AdminVenuesPage() {
               </fieldset>
               {saveError && <p role="alert" className="border-l-2 border-red-400 bg-red-950/20 p-4 text-red-200">{saveError}</p>}
               <div className="flex gap-3 pt-2">
-                <button type="button" disabled={saving} onClick={() => setIsModalOpen(false)} className="ars-button ars-button-secondary w-1/2">Cancel</button>
-                <button type="submit" disabled={saving} className="ars-button w-1/2">{saving ? 'Saving...' : 'Save venue'}</button>
+                <button type="button" disabled={saving || uploadingPhoto} onClick={() => setIsModalOpen(false)} className="ars-button ars-button-secondary w-1/2">Cancel</button>
+                <button type="submit" disabled={saving || uploadingPhoto} className="ars-button w-1/2">{saving ? 'Saving...' : 'Save venue'}</button>
               </div>
             </form>
           </div>
-        </div>
+        </VenueModalOverlay>
       )}
       {deletingVenue && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md">
         <div role="alertdialog" aria-modal="true" aria-labelledby="delete-venue-title" aria-describedby="delete-venue-description" className="ars-card w-full max-w-lg space-y-5 p-6 sm:p-8">

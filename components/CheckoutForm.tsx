@@ -1,6 +1,8 @@
 'use client';
 
 import { Event } from '@/lib/types';
+import PassTierChoices from '@/components/PassTierChoices';
+import {availableTier,type PassTier} from '@/lib/pass-tiers';
 import { formatDate,formatTime } from '@/lib/utils';
 import {
 AlertCircle,
@@ -20,7 +22,10 @@ import React,{ useEffect,useState } from 'react';
 
 interface CheckoutFormProps {
   event: Event;
+  tiers: PassTier[];
+  initialTierId?: string;
   accountEmail: string;
+  accountPhone?: string;
   initialQuantity: number;
   sourceCode?: string;
   testPayment?: boolean;
@@ -30,13 +35,15 @@ const formatINR = (amount: number) => new Intl.NumberFormat('en-IN', {
   style: 'currency', currency: 'INR', minimumFractionDigits: 2, maximumFractionDigits: 2,
 }).format(amount);
 
-export default function CheckoutForm({ event, initialQuantity, sourceCode, accountEmail, testPayment = false }: CheckoutFormProps) {
+export default function CheckoutForm({ event, tiers, initialTierId, initialQuantity, sourceCode, accountEmail, accountPhone = '', testPayment = false }: CheckoutFormProps) {
   const router = useRouter();
+  const [tierId,setTierId]=useState(()=>tiers.some(t=>t.id===initialTierId)?initialTierId!:tiers.find(t=>availableTier(t,Date.now()))?.id||tiers[0]?.id||'');
+  const selectedTier=tiers.find(t=>t.id===tierId);
 
   const [formData, setFormData] = useState({
     name: '',
     email: accountEmail,
-    phone: '',
+    phone: accountPhone,
     dob: '',
     ageConfirmed: false,
   });
@@ -62,7 +69,7 @@ export default function CheckoutForm({ event, initialQuantity, sourceCode, accou
       const response = await fetch('/api/checkout/apply-coupon', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ eventId: event.id, quantity: nextQuantity, couponCode: promoterCode }),
+        body: JSON.stringify({ eventId: event.id, tierId, quantity: nextQuantity, couponCode: promoterCode }),
         signal: AbortSignal.timeout(15000),
       });
       const result = await response.json();
@@ -77,7 +84,7 @@ export default function CheckoutForm({ event, initialQuantity, sourceCode, accou
   }
 
   function changeQuantity(nextQuantity: number) {
-    if (isSubmitting || verifyingCode || nextQuantity < 1 || nextQuantity > 10) return;
+    if (isSubmitting || verifyingCode || nextQuantity < 1 || nextQuantity > Math.min(10,selectedTier?.available||0)) return;
     setQuantity(nextQuantity);
     setErrorMsg('');
     setCouponQuote(null);
@@ -85,7 +92,7 @@ export default function CheckoutForm({ event, initialQuantity, sourceCode, accou
     if (promoterCode.trim()) void verifyPromoterCode(nextQuantity);
   }
 
-  const unitPrice = event.ticket_price;
+  const unitPrice = selectedTier?.price || 0;
   const originalSubtotal = couponQuote?.originalSubtotal ?? unitPrice * quantity;
   const subtotal = couponQuote?.subtotal ?? originalSubtotal;
   const fees = couponQuote?.fees ?? Math.round(subtotal * 0.03);
@@ -108,6 +115,7 @@ export default function CheckoutForm({ event, initialQuantity, sourceCode, accou
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (verifyingCode || isSubmitting) return;
+    if(!selectedTier||!availableTier(selectedTier,Date.now())||quantity>selectedTier.available){setErrorMsg('Choose an available pass and quantity.');return;}
     if (promoterCode.trim() && !couponQuote) {
       setCodeResult({ valid: false, message: 'Apply your coupon or remove it before paying.' });
       return;
@@ -130,6 +138,7 @@ export default function CheckoutForm({ event, initialQuantity, sourceCode, accou
           customer_name: formData.name,
           customer_phone: formData.phone,
           eventId: event.id,
+          tierId,
           sourceCode: referralCode || undefined,
           couponCode: couponQuote?.couponCode || undefined,
           expectedTotal: total,
@@ -250,14 +259,13 @@ export default function CheckoutForm({ event, initialQuantity, sourceCode, accou
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="ars-label">Account email</label>
+              <label className="ars-label">Account email (optional)</label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="email"
                   readOnly
-                  required
-                  aria-label="Account email" placeholder="you@example.com"
+                  aria-label="Account email (optional)" placeholder="No email added"
                   value={formData.email}
                   onChange={e => setFormData({ ...formData, email: e.target.value })}
                   className="ars-input !pl-10"
@@ -325,6 +333,7 @@ export default function CheckoutForm({ event, initialQuantity, sourceCode, accou
         </div>
 
         <div className="space-y-3">
+          <PassTierChoices tiers={tiers} selected={tierId} disabled={isSubmitting||verifyingCode} onChange={id=>{setTierId(id);setQuantity(1);setCouponQuote(null);setCodeResult(null);setErrorMsg('');}}/>
           <div className="flex items-center gap-4 pb-2">
             <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-sm border border-white/10"><CatalogImage src={event.image} alt={event.name} sizes="80px" className="object-cover"/></div>
             <div className="min-w-0">
@@ -341,7 +350,7 @@ export default function CheckoutForm({ event, initialQuantity, sourceCode, accou
           <div className="pt-4 border-t border-white/10 space-y-4 text-sm text-zinc-300">
             <div className="flex justify-between">
               <span>Pass tier</span>
-              <span className="text-white font-semibold">General VIP Entry</span>
+              <span className="text-white font-semibold">{selectedTier?.name||'Choose a pass'}</span>
             </div>
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-sm border border-white/10 bg-black/20 p-3">
               <div><span className="font-medium text-white">Tickets</span><p className="mt-1 text-xs text-zinc-400">{formatINR(unitPrice)} each</p></div>
