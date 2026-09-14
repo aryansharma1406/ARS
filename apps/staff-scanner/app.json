@@ -1,0 +1,17 @@
+{
+  "expo": {
+    "name": "ARS Door",
+    "slug": "ars-staff-scanner",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "scheme": "ars-door",
+    "ios": {"supportsTablet": true, "bundleIdentifier": "events.ars.staffscanner"},
+    "android": {"package": "events.ars.staffscanner", "blockedPermissions": ["android.permission.RECORD_AUDIO"], "predictiveBackGestureEnabled": true},
+    "plugins": [
+      ["expo-camera", {"cameraPermission": "ARS uses your camera to verify guest passes at the entrance.", "recordAudioAndroid": false, "barcodeScannerEnabled": true}],
+      ["expo-secure-store", {"configureAndroidBackup": true}]
+    ],
+    "extra": {"purpose": "Staff-only venue entry operations"}
+  }
+}

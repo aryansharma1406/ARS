@@ -13,7 +13,7 @@ export default function MobileCustomerAuth({ next, appUrl, errorCode, initialMod
   const [create, setCreate] = useState(initialMode === 'signup');
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [whatsapp, setWhatsapp] = useState(true);
+  const [whatsapp, setWhatsapp] = useState(false);
   const [cooldown, setCooldown] = useState(0);
   const [message, setMessage] = useState(errorCode ? 'That sign-in link could not be completed. Please try again.' : '');
   const [error, setError] = useState(false);

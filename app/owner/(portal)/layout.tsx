@@ -1,3 +1,4 @@
+import PortalSessionGuard from '@/components/PortalSessionGuard';
 import OwnerShell from '@/components/owner/OwnerShell';
 import { requireOwner } from '@/lib/owner-auth';
 import { dbError } from '@/lib/api';
@@ -9,5 +10,5 @@ export default async function OwnerPortalLayout({children}:{children:React.React
   const { data, error } = await owner.client.rpc('business_venues');
   dbError(error);
   const venues = ((data || []) as Venue[]).filter(venue => owner.venueIds.includes(venue.id));
-  return <OwnerShell venues={venues} ownerName={owner.name}>{children}</OwnerShell>;
+  return <PortalSessionGuard portal="owner"><OwnerShell venues={venues} ownerName={owner.name}>{children}</OwnerShell></PortalSessionGuard>;
 }

@@ -2,7 +2,7 @@
 
 import { Lock, Mail, RefreshCw, ShieldCheck } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 type Portal = 'admin' | 'staff' | undefined;
 
@@ -15,6 +15,7 @@ export default function LoginForm({ portal, next }: { portal?: Portal; next?: st
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
 
+  useEffect(()=>{if(portal==='admin'&&new URLSearchParams(window.location.search).get('reason')==='session-ended')setMessage('Your session ended. A new login on another device replaces the previous session. Please sign in again.');},[portal]);
   const isAdminPortal = portal === 'admin';
   const portalLabel = portal ? `${portal} access` : 'customer account';
 

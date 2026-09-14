@@ -37,6 +37,7 @@
   ],
   "exclude": [
     "node_modules",
-    "noxpass"
+    "noxpass",
+    "apps/staff-scanner"
   ]
 }

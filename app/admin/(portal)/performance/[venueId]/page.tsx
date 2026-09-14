@@ -24,7 +24,7 @@ export default async function VenueAnalytics({params}:{params:Promise<{venueId:s
     }
   }
 
-  function renderRange(days:number){
+  function renderRange(days:number, venue: NonNullable<typeof data.venues[number]>){
   const r=venuePerformance(data,venueId,days,now);
   const start=now-days*86400000;
   const revenue=Array.from({length:days},(_,i)=>r.orders.filter(order=>Date.parse(order.created_at)>=start+i*86400000&&Date.parse(order.created_at)<start+(i+1)*86400000).reduce((sum,order)=>sum+Number(order.subtotal),0));
@@ -46,6 +46,6 @@ export default async function VenueAnalytics({params}:{params:Promise<{venueId:s
   </div>;
   }
   return <Suspense fallback={<p role="status" className="text-sm text-zinc-400">Loading venue analytics...</p>}>
-    <VenueAnalyticsRanges key={venueId} panels={{7:renderRange(7),30:renderRange(30),90:renderRange(90)}}/>
+    <VenueAnalyticsRanges key={venueId} panels={{7:renderRange(7,venue),30:renderRange(30,venue),90:renderRange(90,venue)}}/>
   </Suspense>;
 }

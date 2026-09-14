@@ -12,7 +12,8 @@
     "test:security": "vitest run tests/database.test.ts tests/authorization.test.ts",
     "validate:schema": "vitest run tests/database.test.ts",
     "db:setup:sql": "node scripts/supabase-setup.mjs",
-    "db:check": "node scripts/check-supabase.mjs"
+    "db:check": "node scripts/check-supabase.mjs",
+    "typecheck:scanner": "tsc --noEmit --project apps/staff-scanner/tsconfig.json"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

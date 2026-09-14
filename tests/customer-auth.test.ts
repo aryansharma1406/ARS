@@ -21,7 +21,7 @@ beforeEach(() => {
   state.signOut.mockResolvedValue({ error: null });
   state.recover.mockResolvedValue({ error: null });
   state.update.mockResolvedValue({ error: null });
-  state.role.mockResolvedValue({ client });
+  state.role.mockResolvedValue({ client, name: 'Test customer' });
 });
 afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); });
 
@@ -65,7 +65,7 @@ describe('OAuth callback and redirects', () => {
     const response = await callback(new Request('https://ars.example/auth/customer/callback?code=valid&next=%2Faccount%2Ftickets&sb_flow_id=flow-1'));
     expect(state.exchange).toHaveBeenCalledWith('valid', { flowId: 'flow-1' });
     expect(state.role).toHaveBeenCalledWith('customer');
-    expect(response.headers.get('location')).toBe('https://ars.example/account/tickets');
+    expect(response.headers.get('location')).toBe('https://ars.example/account/location?next=%2Faccount%2Ftickets');
   });
   it('signs out a disallowed role instead of granting customer access', async () => {
     state.role.mockRejectedValue(new AuthError(403, 'Role denied'));

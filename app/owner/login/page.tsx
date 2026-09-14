@@ -3,7 +3,7 @@
 import { ArrowRight, Eye, EyeOff, LockKeyhole } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 export default function OwnerLoginPage() {
   const router = useRouter();
@@ -12,6 +12,7 @@ export default function OwnerLoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  useEffect(()=>{if(new URLSearchParams(window.location.search).get('reason')==='session-ended')setError('Your previous session ended. A new login on another device replaces it. Sign in to continue.');},[]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();

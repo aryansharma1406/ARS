@@ -1,25 +1,29 @@
 import { PGlite } from '@electric-sql/pglite';
 import { uuid_ossp } from '@electric-sql/pglite/contrib/uuid_ossp';
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 
-export async function createDatabase(beforeSecurity?: (db: PGlite) => Promise<void>) {
+export async function createDatabase(beforeSecurity?: (db: PGlite) => Promise<void>, fullSchema = false) {
   const db = new PGlite({ extensions: { uuid_ossp } });
   await db.exec(`
     CREATE ROLE anon NOLOGIN;
     CREATE ROLE authenticated NOLOGIN;
     CREATE ROLE service_role NOLOGIN BYPASSRLS;
     CREATE SCHEMA auth;
-    CREATE TABLE auth.users(id uuid PRIMARY KEY, email text, raw_user_meta_data jsonb DEFAULT '{}');
+    CREATE TABLE auth.users(id uuid PRIMARY KEY, email text, raw_user_meta_data jsonb DEFAULT '{}', phone text, phone_confirmed_at timestamptz, email_confirmed_at timestamptz);
+    CREATE TABLE auth.sessions(id uuid PRIMARY KEY,user_id uuid REFERENCES auth.users(id),created_at timestamptz DEFAULT now());
+    CREATE FUNCTION auth.jwt() RETURNS jsonb LANGUAGE sql STABLE AS $$ SELECT coalesce(nullif(current_setting('request.jwt.claims',true),''),'{}')::jsonb $$;
     CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$ SELECT nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
     GRANT USAGE ON SCHEMA public,auth TO anon,authenticated,service_role;
     GRANT EXECUTE ON FUNCTION auth.uid() TO anon,authenticated,service_role;
   `);
-  await db.exec('BEGIN');
-  for (const file of ['0001_existing_schema.sql','0002_production_security.sql']) {
+  // Each migration may manage its own transaction; this database is isolated and disposable.
+
+  const files = fullSchema ? (await readdir(new URL('../supabase/migrations/',import.meta.url))).filter(file=>file.endsWith('.sql')).sort() : ['0001_existing_schema.sql','0002_production_security.sql'];
+  for (const file of files) {
     await db.exec(await readFile(new URL(`../supabase/migrations/${file}`,import.meta.url),'utf8'));
     if (file === '0001_existing_schema.sql' && beforeSecurity) await beforeSecurity(db);
   }
-  await db.exec('COMMIT');
+  
   return db;
 }
 export const ids = {

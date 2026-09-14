@@ -5,8 +5,14 @@ import type {Order,Ticket,Event,Venue} from './types';
 export type CustomerLocationRecord={customer_id:string;status:string;latitude:number|null;longitude:number|null;recorded_at:string;name:string;email:string;phone:string};
 export async function getAdminCustomerCRM(){
   const {client}=await requireAdmin();
-  const registrations=await client.from('users').select('id',{count:'exact',head:true}).eq('role','customer');
-  dbError(registrations.error);
+  const registeredAccounts:{id:string;name:string|null;email:string|null;phone:string|null;active:boolean;created_at:string}[]=[];
+  for(let offset=0;;offset+=1000){
+    const result=await client.from('users').select('id,name,email,phone,active,created_at').eq('role','customer').order('id').range(offset,offset+999);
+    dbError(result.error);
+    const accounts=result.data||[];
+    registeredAccounts.push(...accounts);
+    if(accounts.length<1000)break;
+  }
   async function read<T>(table:string,columns:string){const rows:T[]=[];for(let offset=0;;offset+=1000){const r=await client.from(table).select(columns).order('id').range(offset,offset+999);dbError(r.error);const page=(r.data||[]) as unknown as T[];rows.push(...page);if(page.length<1000)return rows;}}
   const orders=await read<Pick<Order,'id'|'customer_id'|'customer_name'|'customer_email'|'customer_phone'|'event_id'|'quantity'|'subtotal'|'payment_status'|'ticket_type'|'source_code'|'created_at'>>('orders','id,customer_id,customer_name,customer_email,customer_phone,event_id,quantity,subtotal,payment_status,ticket_type,source_code,created_at');
   const tickets=await read<Pick<Ticket,'id'|'order_id'|'event_id'|'status'|'scanned_at'>>('tickets','id,order_id,event_id,status,scanned_at');
@@ -26,5 +32,5 @@ export async function getAdminCustomerCRM(){
     }
     if(rows.length<1000)break;
   }
-  return {orders,tickets,events,venues:((venues.data||[]) as Venue[]).map(v=>({id:v.id,name:v.name})),registeredCustomers:registrations.count,asOf:Date.now(),locations,locationsUnavailable};
+  return {orders,tickets,events,venues:((venues.data||[]) as Venue[]).map(v=>({id:v.id,name:v.name})),registeredCustomers:registeredAccounts.length,registeredAccounts,asOf:Date.now(),locations,locationsUnavailable};
 }

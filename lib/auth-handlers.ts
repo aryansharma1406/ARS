@@ -3,6 +3,7 @@ import 'server-only';
 import { apiError,checkOrigin,jsonBody,safeNext } from './api';
 import { AuthError } from './auth';
 import { getSupabaseClient } from './supabase';
+import {registerPortalSession,recordPortalLogout} from './portal-sessions';
 
 export async function login(request: Request, portal?: 'owner'|'staff'|'admin') {
   try {
@@ -25,6 +26,10 @@ export async function login(request: Request, portal?: 'owner'|'staff'|'admin') 
         : portal === 'admin' ? role === 'admin' || role === 'super_admin'
         : role === 'customer';
       if (!permitted) throw new AuthError(403, 'This account cannot access this area.');
+      if(portal==='owner'||portal==='admin'){
+        if(!data.session)throw new AuthError(503,'Sign-in session unavailable.');
+        await registerPortalSession(data.user.id,data.session.access_token,portal,request);
+      }
     } catch (error) {
       await client.auth.signOut({ scope: 'local' });
       throw error;
@@ -37,6 +42,7 @@ export async function logout(request: Request, destination = '/login') {
   try {
     checkOrigin(request);
     const client = await getSupabaseClient();
+    await recordPortalLogout(client);
     const { error } = await client.auth.signOut({ scope: 'local' });
     if (error) throw new AuthError(503, 'Sign-out could not be completed.');
     const response = NextResponse.redirect(new URL(destination, request.url), 303);

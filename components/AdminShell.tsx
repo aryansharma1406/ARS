@@ -35,6 +35,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { label: 'Club Settlements', href: '/admin/settlements', icon: DollarSign },
     { label: 'Customer CRM', href: '/admin/customers', icon: Users },
     { label: 'Marketing', href: '/admin/marketing', icon: Zap },
+    { label: 'Login Activity', href: '/admin/login-activity', icon: Users },
   ];
 
   return (

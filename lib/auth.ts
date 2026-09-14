@@ -1,6 +1,7 @@
 import { forbidden,redirect } from 'next/navigation';
 import { cache } from 'react';
 import 'server-only';
+import {assertPortalSession,isBusinessRole} from './portal-sessions';
 import { AuthError } from './auth-errors';
 import { getSupabaseClient } from './supabase';
 import type { UserRole,VenueStaffAssignment } from './types';
@@ -14,6 +15,7 @@ export const requireAuth = cache(async function requireAuth() {
   const { data: profile, error: profileError } = await client.from('users').select('id,name,email,role,active').eq('id', user.id).maybeSingle();
   if (profileError) throw new AuthError(503, 'Account verification is unavailable.');
   if (!profile || !profile.active) throw new AuthError(403, 'Your account is inactive or has not been provisioned.', 'ACCOUNT_INACTIVE');
+  if(isBusinessRole(profile.role))await assertPortalSession(client);
   return { userId: user.id, name: profile.name as string, email: user.email || (profile.email as string | null) || '', phone: user.phone_confirmed_at && user.phone ? `+${user.phone.replace(/^\+/, '')}` : '', role: profile.role as UserRole, client };
 });
 
@@ -52,7 +54,7 @@ export async function requirePage<T>(check: () => Promise<T>, login: string, nex
   try { return await check(); }
   catch (error) {
     if (error instanceof AuthError) {
-      if (error.status === 401) redirect(`${login}${next ? `?next=${encodeURIComponent(next)}` : ''}`);
+      if (error.status === 401) { const query=new URLSearchParams();if(next)query.set('next',next);if(error.code==='SESSION_REPLACED')query.set('reason','session-ended');redirect(`${login}${query.size?'?'+query.toString():''}`); }
       if (error.code === 'ASSIGNMENT_REQUIRED') redirect('/access-denied?reason=assignment');
       if (error.status === 403) forbidden();
       if (error.status === 503) redirect('/access-denied?reason=configuration');

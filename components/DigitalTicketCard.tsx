@@ -170,11 +170,6 @@ export default function DigitalTicketCard({ ticket, event }: DigitalTicketCardPr
 
           {(ticket.tier_description || !!ticket.tier_benefits?.length) && <section className="border-t border-[#cbb88a]/25 pt-4"><h3 className="text-sm font-semibold text-[#e2d4ae]">Your pass includes</h3>{ticket.tier_description&&<p className="mt-2 text-xs leading-6 text-zinc-300">{ticket.tier_description}</p>}<ul className="mt-2 list-inside list-disc text-xs leading-6 text-zinc-300">{ticket.tier_benefits?.filter(Boolean).map((benefit,index)=><li key={index}>{benefit}</li>)}</ul></section>}
 
-          {false && ticket.scanned_at && (
-            <div className="p-3 rounded-xl bg-amber-950/40 border border-amber-500/40 text-center text-xs text-amber-300">
-              Scanned at Door: {new Date(ticket.scanned_at).toLocaleString('en-IN')}
-            </div>
-          )}
 
         </div>
 

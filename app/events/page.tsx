@@ -30,7 +30,8 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
   const categoryFilter = params.category || '';
   const sourceCode = params.source || '';
   const referralScope = sourceCode ? await getReferralScope(sourceCode) : null;
-  const priceMax = params.price ? parseInt(params.price, 10) : 10000;
+  const requestedPrice = Number(params.price);
+  const priceMax = params.price && Number.isFinite(requestedPrice) && requestedPrice >= 0 ? requestedPrice : Infinity;
 
   const categories = [...new Set(events.map(event => event.category))].sort();
 
@@ -92,6 +93,7 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
               className="ars-select !pl-10"
             >
               <option value="">All music genres</option>
+              {categoryFilter && !categories.includes(categoryFilter) && <option value={categoryFilter}>{categoryFilter}</option>}
               {categories.map(category => <option key={category} value={category}>{category}</option>)}
             </select>
           </div>

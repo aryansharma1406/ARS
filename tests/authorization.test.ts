@@ -1,6 +1,6 @@
 import { beforeEach,describe,it,expect,vi } from 'vitest';
 import { NextRequest } from 'next/server';
-const state=vi.hoisted(()=>({userId:'owner',role:'venue_owner',active:true,identityError:false,assigned:true,rpc:vi.fn(),getUser:vi.fn(),service:vi.fn(),signOut:vi.fn(),signIn:vi.fn()}));
+const state=vi.hoisted(()=>({userId:'owner',role:'venue_owner',active:true,identityError:false,assigned:true,sessionValid:true,rpc:vi.fn(),getUser:vi.fn(),service:vi.fn(),signOut:vi.fn(),signIn:vi.fn()}));
 const client=vi.hoisted(()=>({
  auth:{getUser:state.getUser,signOut:state.signOut,signInWithPassword:state.signIn},
  from:vi.fn((table:string)=>{
@@ -34,16 +34,17 @@ import { safeNext } from '@/lib/api';
 import { login,logout } from '@/lib/auth-handlers';
 const request=(path:string,body:Record<string,unknown>,method='POST',origin='https://ars.test')=>new Request(`https://ars.test${path}`,{method,headers:{'Content-Type':'application/json',Origin:origin},body:JSON.stringify(body)});
 beforeEach(()=>{
- vi.clearAllMocks();Object.assign(state,{userId:'owner',role:'venue_owner',active:true,identityError:false,assigned:true});
+ vi.clearAllMocks();Object.assign(state,{userId:'owner',role:'venue_owner',active:true,identityError:false,assigned:true,sessionValid:true});
  state.getUser.mockImplementation(async()=>({data:{user:state.identityError?null:{id:state.userId,email:'user@test.invalid'}},error:state.identityError?new Error('Invalid token'):null}));
  state.rpc.mockImplementation(async(name:string,args:Record<string,unknown>)=>{
   if((name==='save_event'||name==='save_staff_assignment')&&args.target_id==='foreign-resource')return {data:null,error:{code:'42501'}};
   if(name==='scan_ticket')return {data:{result:'VALID',message:'Entry granted'},error:null};
-  if(name==='reserve_order')return {data:{id:'pending-order',total:1030},error:null};
+  if(name==='portal_session_valid')return {data:state.sessionValid,error:null};
+  if(name==='reserve_tier_order')return {data:{id:'pending-order',total:1030},error:null};
   if(name==='finalize_payment')return {data:{tickets:[{id:'ticket-owned'}]},error:null};
   return {data:[],error:null};
  });
- state.signIn.mockResolvedValue({data:{user:{id:state.userId,email:'user@test.invalid'}},error:null});state.signOut.mockResolvedValue({error:null});
+ state.signIn.mockResolvedValue({data:{user:{id:state.userId,email:'user@test.invalid'},session:{access_token:'test.'+Buffer.from(JSON.stringify({session_id:'60000000-0000-4000-8000-000000000001'})).toString('base64url')+'.test'}},error:null});state.signOut.mockResolvedValue({error:null});
  state.service.mockReturnValue(client);process.env.NEXT_PUBLIC_APP_URL='https://ars.test';process.env.NEXT_PUBLIC_SUPABASE_URL='https://auth.test';process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY='test-anon';
 });
 describe('server authentication and route guards',()=>{
@@ -64,6 +65,7 @@ describe('server authentication and route guards',()=>{
   await expect(requirePage(requireAdmin,'/admin/login')).rejects.toThrow('forbidden:403');
   state.identityError=true;await expect(requirePage(requireOwner,'/owner/login')).rejects.toThrow('redirect:/owner/login');
  });
+ it('rejects a replaced business session without bypassing its guard',async()=>{state.sessionValid=false;await expect(requireOwner()).rejects.toMatchObject({status:401,code:'SESSION_REPLACED'});});
  it('protects login next against external redirects',()=>{
   for(const value of ['https://evil.test','//evil.test','/\\evil.test','/\nevil.test'])expect(safeNext(value,'/owner')).toBe('/owner');
  });
@@ -76,7 +78,7 @@ describe('direct API and server action authorization',()=>{
  it('rejects unauthenticated API calls without accessing privileged storage',async()=>{
   state.identityError=true;
   for(const handler of [ownerEventPATCH,staffPATCH,settingsPATCH,scanPOST,createPOST,verifyPOST])expect((await handler(request('/api/test',{}))).status).toBe(401);
-  expect(state.service).not.toHaveBeenCalled();expect(state.rpc).not.toHaveBeenCalled();
+  expect(state.service).not.toHaveBeenCalled();expect(state.rpc.mock.calls.filter(([name])=>name!=='portal_session_valid')).toHaveLength(0);
  });
  it('explicitly rejects foreign venue IDs instead of returning an empty list',async()=>{
   expect((await ownerEventsGET(new Request('https://ars.test/api/owner/events?venueId=venue-b'))).status).toBe(403);
@@ -91,7 +93,7 @@ describe('direct API and server action authorization',()=>{
  });
  it('rejects commission or settlement fields in owner settings',async()=>{
   for(const extra of [{commission_percentage:0},{venue_amount:999999},{source_code:'FORGED'}])expect((await settingsPATCH(request('/api/owner/settings',{venue_id:'venue-a',...extra},'PATCH'))).status).toBe(400);
-  expect(state.rpc).not.toHaveBeenCalled();
+  expect(state.rpc.mock.calls.filter(([name])=>name!=='portal_session_valid')).toHaveLength(0);
  });
  it('staff cannot call business/admin server actions directly',async()=>{
   state.role='staff';
@@ -116,20 +118,20 @@ describe('direct API and server action authorization',()=>{
   expect((await scanPOST(request('/api/staff/scan',{qrToken:'token',assignmentId:'assignment-a'}))).status).toBe(409);
  });
  it('rejects cross-origin mutations',async()=>{
-  expect((await settingsPATCH(request('/api/owner/settings',{venue_id:'venue-a'},'PATCH','https://evil.test'))).status).toBe(403);expect(state.rpc).not.toHaveBeenCalled();
+  expect((await settingsPATCH(request('/api/owner/settings',{venue_id:'venue-a'},'PATCH','https://evil.test'))).status).toBe(403);expect(state.rpc.mock.calls.filter(([name])=>name!=='portal_session_valid')).toHaveLength(0);
  });
  it('checkout rejects price and customer-ID overrides, binds authenticated identity',async()=>{
   state.role='customer';state.userId='customer';
   expect((await createPOST(request('/api/checkout/create-order',{amount:1,customer_id:'victim'}))).status).toBe(400);expect(state.service).not.toHaveBeenCalled();
-  expect((await createPOST(request('/api/checkout/create-order',{eventId:'event-a',quantity:1,customer_name:'Guest',customer_phone:'1234567890',sourceCode:'SOURCE-A'}))).status).toBe(200);
-  expect(state.rpc).toHaveBeenCalledWith('reserve_order',expect.objectContaining({target_customer:'customer',target_event:'event-a',ticket_quantity:1}));
+  expect((await createPOST(request('/api/checkout/create-order',{eventId:'event-a',tierId:'50000000-0000-4000-8000-000000000001',expectedTotal:1030,quantity:1,customer_name:'Guest',customer_phone:'1234567890',sourceCode:'SOURCE-A'}))).status).toBe(200);
+  expect(state.rpc).toHaveBeenCalledWith('reserve_tier_order',expect.objectContaining({target_customer:'customer',target_event:'event-a',ticket_quantity:1}));
   expect(state.rpc).toHaveBeenCalledWith('bind_payment_order',expect.objectContaining({target_customer:'customer',target_order:'pending-order',provider_order:'order_bound'}));
  });
  it('verification rejects foreign orders and late changes to identity/event/quantity/attribution',async()=>{
   state.role='customer';state.userId='customer';
   const receipt={razorpay_order_id:'order_foreign',razorpay_payment_id:'pay_valid',razorpay_signature:'test'};
   expect((await verifyPOST(request('/api/checkout/verify',receipt))).status).toBe(403);
-  expect((await verifyPOST(request('/api/checkout/verify',{...receipt,event_id:'other',quantity:10,source_code:'FORGED'}))).status).toBe(400);expect(state.rpc).not.toHaveBeenCalled();
+  expect((await verifyPOST(request('/api/checkout/verify',{...receipt,event_id:'other',quantity:10,source_code:'FORGED'}))).status).toBe(400);expect(state.rpc.mock.calls.filter(([name])=>name!=='portal_session_valid')).toHaveLength(0);
   expect((await verifyPOST(request('/api/checkout/verify',{...receipt,razorpay_order_id:'order_owned'}))).status).toBe(200);
   expect(state.rpc).toHaveBeenCalledWith('finalize_payment',expect.objectContaining({target_customer:'customer',provider_order:'order_owned',captured_amount:103000}));
  });

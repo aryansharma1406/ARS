@@ -31,6 +31,7 @@ const items = [
   ['Settlements', '/owner/settlements', CreditCard],
   ['Staff', '/owner/staff', UserRoundCog],
   ['Settings', '/owner/settings', Settings],
+  ['Login Activity', '/owner/login-activity', UserRoundCog],
 ] as const;
 
 export default function OwnerShell({
