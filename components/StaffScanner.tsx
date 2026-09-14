@@ -136,32 +136,7 @@ export default function StaffScanner({ assignments }: { assignments: (VenueStaff
               <QrCode className="w-5 h-5 text-accent-pink" /> QR entry verification
             </h3>
 
-            <CameraQrScanner key={`${assignmentId}-${isProcessing}`} disabled={isProcessing} onScan={token => void handleScanSubmit(token)} />
-
-            {/* Manual Token Input */}
-            <form onSubmit={(e) => { e.preventDefault(); handleScanSubmit(); }} className="space-y-3">
-              <label className="ars-label">QR token entry</label>
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <div className="relative flex-1">
-                  <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    aria-label="QR token" placeholder="Scan or paste QR token" autoComplete="off"
-                    value={inputToken}
-                    onChange={e => setInputToken(e.target.value)}
-                    className="ars-input !pl-10"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={isProcessing || !inputToken}
-                  className="ars-button px-6 py-3 disabled:opacity-40"
-                >
-                  {isProcessing ? 'Verifying…' : 'Verify pass'}
-                </button>
-              </div>
-            </form>
-          </div>
+            <CameraQrScanner key={assignmentId} disabled={isProcessing} onScan={token => void handleScanSubmit(token)} />
 
           {/* Real-time Result Overlay Display */}
           {scanResponse.result && (
@@ -209,6 +184,32 @@ export default function StaffScanner({ assignments }: { assignments: (VenueStaff
               )}
             </div>
           )}
+
+            {/* Manual Token Input */}
+            <form onSubmit={(e) => { e.preventDefault(); handleScanSubmit(); }} className="space-y-3">
+              <label className="ars-label">QR token entry</label>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    aria-label="QR token" placeholder="Scan or paste QR token" autoComplete="off"
+                    value={inputToken}
+                    onChange={e => setInputToken(e.target.value)}
+                    className="ars-input !pl-10"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={isProcessing || !inputToken}
+                  className="ars-button px-6 py-3 disabled:opacity-40"
+                >
+                  {isProcessing ? 'Verifying…' : 'Verify pass'}
+                </button>
+              </div>
+            </form>
+          </div>
+
         </div>
 
         {/* Scan Log Feed */}

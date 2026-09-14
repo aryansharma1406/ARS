@@ -12,9 +12,17 @@ export default function CameraQrScanner({ disabled, onScan }: { disabled: boolea
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState('');
   const [scanned, setScanned] = useState(false);
+  const latest=useRef({disabled,onScan});
+  const lastCode=useRef('');
+  const lastSeen=useRef(0);
+  const nextScanAt=useRef(0);
+  useEffect(()=>{latest.current={disabled,onScan};},[disabled,onScan]);
 
   function release() {
     generation.current += 1;
+    lastCode.current='';
+    lastSeen.current=0;
+    nextScanAt.current=0;
     if (timer.current) clearTimeout(timer.current);
     stream.current?.getTracks().forEach(track => track.stop());
     stream.current = null;
@@ -61,8 +69,16 @@ export default function CameraQrScanner({ disabled, onScan }: { disabled: boolea
             context.drawImage(player, 0, 0, canvas.width, canvas.height);
             const frame = context.getImageData(0, 0, canvas.width, canvas.height);
             const code = decode(frame.data, frame.width, frame.height, { inversionAttempts: 'attemptBoth' });
-            if (code?.data.trim()) {
-              stop(); setScanned(true); onScan(code.data.trim()); return;
+            const token=code?.data.trim()||'';
+            const now=Date.now();
+            if(token&&token===lastCode.current)lastSeen.current=now;
+            if(!token&&now-lastSeen.current>1200)lastCode.current='';
+            if(token&&token!==lastCode.current&&!latest.current.disabled&&now>=nextScanAt.current){
+              lastCode.current=token;
+              lastSeen.current=now;
+              nextScanAt.current=now+1500;
+              setScanned(true);
+              latest.current.onScan(token);
             }
           }
           timer.current = setTimeout(read, 180);
@@ -86,7 +102,7 @@ export default function CameraQrScanner({ disabled, onScan }: { disabled: boolea
     <div className="relative h-64 overflow-hidden border border-[#cbb88a]/30 bg-black sm:h-80">
       <video ref={video} muted playsInline aria-label="Live QR scanner camera" className={`h-full w-full object-cover ${active || starting ? '' : 'invisible'}`} />
       {!active && !starting && <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-5 text-center"><Camera className="h-10 w-10 text-[#cbb88a]" /><p className="text-sm text-white">{scanned ? 'QR captured. Review the result below.' : 'Scan a customer\'s QR pass'}</p><p className="max-w-xs text-xs leading-5 text-zinc-400">Start the camera and allow access when your browser asks.</p></div>}
-      {active && <div className="pointer-events-none absolute inset-0 flex items-center justify-center"><div className="h-44 w-44 border-2 border-[#cbb88a] shadow-[0_0_0_999px_rgba(0,0,0,0.25)]" /><span className="absolute bottom-3 bg-black/70 px-3 py-1 text-xs text-white">Hold the QR code steady inside the frame</span></div>}
+      {active && <div className="pointer-events-none absolute inset-0 flex items-center justify-center"><div className="h-44 w-44 border-2 border-[#cbb88a] shadow-[0_0_0_999px_rgba(0,0,0,0.25)]" /><span className="absolute bottom-3 bg-black/70 px-3 py-1 text-xs text-white">{disabled ? 'Verifying pass...' : 'Camera ready / present the next QR'}</span></div>}
     </div>
     {error && <p role="alert" className="border border-red-400/30 bg-red-950/30 p-3 text-sm text-red-300">{error}</p>}
     <div className="flex flex-wrap gap-3">
