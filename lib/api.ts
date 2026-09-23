@@ -6,12 +6,22 @@ export function checkOrigin(request: Request) {
   const origin = request.headers.get('origin');
   const allowed = new URL(process.env.NEXT_PUBLIC_APP_URL || request.url).origin;
   const target = new URL(request.url);
+  const trustedOrigins = new Set([allowed]);
+  // Trust only exact deployment domains supplied by Vercel, never arbitrary
+  // *.vercel.app domains or client-controlled Host/forwarded headers.
+  if (process.env.VERCEL === '1') {
+    for (const host of [process.env.VERCEL_URL, process.env.VERCEL_PROJECT_PRODUCTION_URL, process.env.VERCEL_BRANCH_URL]) {
+      if (host && /^[a-z0-9.-]+$/i.test(host)) {
+        trustedOrigins.add(`https://${host.toLowerCase()}`);
+      }
+    }
+  }
   // Next.js may move to another port when the default development port is busy.
   // Accept only the exact local request origin, not arbitrary localhost origins.
   const localSameOrigin = process.env.NODE_ENV === 'development'
     && ['localhost', '127.0.0.1', '[::1]'].includes(target.hostname)
     && origin === target.origin;
-  if (!origin || (origin !== allowed && !localSameOrigin) || request.headers.get('sec-fetch-site') === 'cross-site') {
+  if (!origin || (!trustedOrigins.has(origin) && !localSameOrigin) || request.headers.get('sec-fetch-site') === 'cross-site') {
     throw new AuthError(403, 'Request origin denied.');
   }
 }
