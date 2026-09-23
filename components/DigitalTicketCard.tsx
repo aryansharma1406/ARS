@@ -13,6 +13,7 @@ XCircle
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useEffect,useRef } from 'react';
+import {useRouter} from 'next/navigation';
 
 interface DigitalTicketCardProps {
   ticket: TicketType;
@@ -20,6 +21,7 @@ interface DigitalTicketCardProps {
 }
 
 export default function DigitalTicketCard({ ticket, event }: DigitalTicketCardProps) {
+  const router=useRouter();
   const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -102,8 +104,9 @@ export default function DigitalTicketCard({ ticket, event }: DigitalTicketCardPr
           </div>
 
           {/* QR Code Section */}
+          {ticket.group_id && <section className="border border-[#cbb88a]/40 p-4 text-[#e2d4ae]"><h3 className="font-bold">GROUP PASS</h3><p>{ticket.checked_in_quantity} / {ticket.purchased_quantity} guests entered</p><p>Remaining: {ticket.remaining_quantity}</p><button type="button" onClick={()=>router.refresh()} className="mt-2 text-xs underline">Refresh entry status</button></section>}
           <div className="pass-perforation border-y border-dashed border-[#cbb88a]/30 px-3 py-8 flex flex-col items-center justify-center space-y-4 relative">
-            <p className="text-[10px] uppercase tracking-[.24em] text-[#e2d4ae]">Your personal entry credential</p>
+            <p className="text-[10px] uppercase tracking-[.24em] text-[#e2d4ae]">{ticket.group_id ? 'One QR for this group booking' : 'Your personal entry credential'}</p>
             <div className="bg-white p-6 rounded-xl ring-1 ring-[#cbb88a]/50 ring-offset-4 ring-offset-[#11110f]">
               <QRCodeSVG
                 value={ticket.qr_token}
@@ -157,7 +160,7 @@ export default function DigitalTicketCard({ ticket, event }: DigitalTicketCardPr
             <div>
               <span className="text-gray-400 block mb-0.5">Admission</span>
               <strong className="text-accent-pink text-sm block">
-                One guest / Single entry
+                {ticket.group_id ? `${ticket.purchased_quantity} guests / partial entry allowed` : 'One guest / Single entry'}
               </strong>
             </div>
           </div>
@@ -175,7 +178,7 @@ export default function DigitalTicketCard({ ticket, event }: DigitalTicketCardPr
 
         {/* Footer Disclaimer */}
         <div className="bg-surface border-t border-border p-4 text-center text-[11px] text-gray-400">
-          Must present physical government photo ID matching guest name at door. Each pass can be used for entry once.
+          Must present physical government photo ID matching guest name at door. Single passes admit one guest. Group passes admit only the purchased quantity, confirmed by staff.
         </div>
 
       </div>

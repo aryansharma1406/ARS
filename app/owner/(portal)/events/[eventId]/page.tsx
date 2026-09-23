@@ -3,6 +3,7 @@ import EventCreateForm from '@/components/owner/EventCreateForm';
 import PublishToggle from '@/components/owner/PublishToggle';
 import { getOwnerEvent, promoterRows } from '@/lib/owner-data';
 import { formatDate,formatINR,formatTime } from '@/lib/utils';
+import { eventPhase } from '@/lib/event-schedule';
 
 export default async function OwnerEventDetail({
   params,
@@ -15,13 +16,15 @@ export default async function OwnerEventDetail({
   const query = await searchParams;
   const data = await getOwnerEvent(eventId, query.venue);
   const { event } = data;
+  const completed=eventPhase(event,Date.now())==='past';
 
   const paidOrders = data.orders.filter(o => o.payment_status === 'PAID');
   const gross = paidOrders.reduce((s, o) => s + o.subtotal, 0);
   const refunds = data.orders.filter(o => o.payment_status === 'REFUNDED').reduce((s, o) => s + o.subtotal, 0);
-  const used = data.tickets.filter(t => t.status === 'USED').length;
   const paidTickets = data.tickets.filter(t => paidOrders.some(order => order.id === t.order_id));
-  const remaining = Math.max(0, event.ticket_capacity - paidTickets.length);
+  const used = paidTickets.filter(t => t.status === 'USED').length;
+  const sold = paidOrders.reduce((sum,order)=>sum+Number(order.quantity),0);
+  const remaining = Math.max(0, event.ticket_capacity - sold);
   const commission = Math.round((gross - refunds) * data.venue.commission_percentage / 100);
   const promoters = (await promoterRows(data)).filter(p => data.tickets.some(t => t.source_code === p.source_code));
   const salesByHour = Array.from({ length: 24 }, (_, hour) =>
@@ -40,7 +43,7 @@ export default async function OwnerEventDetail({
       }, 0),
   }));
 
-  const entryRate = paidTickets.length ? Math.round((used / paidTickets.length) * 100) : 0;
+  const entryRate = sold ? Math.round((used / sold) * 100) : 0;
 
   return (
     <>
@@ -48,7 +51,7 @@ export default async function OwnerEventDetail({
         eyebrow={`${data.venue.name} · ${formatDate(event.date)} · ${formatTime(event.start_time)} - ${formatTime(event.end_time)}`}
         title={event.name}
         action={
-          <div className="flex gap-2">
+          completed ? <p className="text-sm text-zinc-400">Completed · Read-only</p> : <div className="flex gap-2">
             <EventCreateForm mode="edit" venueId={data.venue.id} event={event} />
             <PublishToggle id={event.id} venueId={data.venue.id} published={event.published} />
           </div>
@@ -56,11 +59,12 @@ export default async function OwnerEventDetail({
       />
 
       <div className="grid grid-cols-2 gap-x-5 lg:grid-cols-4">
-        <Stat label="Tickets sold" value={data.tickets.length} />
-        <Stat label="Remaining" value={remaining} />
+        <Stat label="Tickets sold" value={sold} />
+        <Stat label={completed?'Unsold capacity':'Remaining'} value={remaining} />
+        <Stat label="Capacity" value={event.ticket_capacity} />
         <Stat label="Revenue" value={formatINR(gross)} accent />
         <Stat label="Attendance" value={`${entryRate}%`} />
-        <Stat label="Average ticket" value={formatINR(data.tickets.length ? gross / data.tickets.length : event.ticket_price)} />
+        <Stat label="Average ticket" value={formatINR(sold ? gross / sold : 0)} />
         <Stat label="Refunds" value={formatINR(refunds)} />
         <Stat label="ARS commission" value={formatINR(commission)} />
         <Stat label="Venue payable" value={formatINR(Math.max(0, gross - refunds - commission))} />
@@ -83,7 +87,7 @@ export default async function OwnerEventDetail({
             </div>
             <div>
               <p className="text-xs text-zinc-500">Purchased</p>
-              <p className="mt-1 text-xl font-black text-white">{paidTickets.length}</p>
+              <p className="mt-1 text-xl font-black text-white">{sold}</p>
             </div>
           </div>
         </Panel>

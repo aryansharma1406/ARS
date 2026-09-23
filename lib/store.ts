@@ -1,6 +1,7 @@
 'use server';
 
 import { dbError } from './api';
+import { customerPasses, missingGroupPassSchema, type GroupPassRow } from './customer-group-passes';
 import { promoterCommission } from './promoter-commission';
 import { AuthError,requireAdmin,requireAuth,requireOwner,requireRole,requireStaff,requireVenueAccess } from './auth';
 import { getSupabaseClient } from './supabase';
@@ -99,7 +100,12 @@ export async function getTickets(venueId?: string): Promise<Ticket[]> {
 export async function getCustomerTickets(auth?: Awaited<ReturnType<typeof requireRole>>): Promise<Ticket[]> {
   const customer = auth || await requireRole('customer');
   const { data, error } = await customer.client.from('tickets').select('*').eq('customer_id', customer.userId).order('created_at', { ascending: false });
-  dbError(error); return (data || []) as Ticket[];
+  dbError(error);
+  const tickets=(data||[]) as Ticket[];
+  if(!tickets.length)return [];
+  const groups=await customer.client.from('group_passes').select('*').in('order_id',[...new Set(tickets.map(t=>t.order_id))]);
+  if(missingGroupPassSchema(groups.error))return tickets;
+  dbError(groups.error);return customerPasses(tickets,(groups.data||[]) as GroupPassRow[]);
 }
 export async function getTicketById(id: string): Promise<Ticket> {
   const auth = await requireRole('customer','admin','super_admin');
@@ -109,7 +115,9 @@ export async function getTicketById(id: string): Promise<Ticket> {
   dbError(error);
   if (!data) throw new AuthError(403, 'Ticket access denied.');
   const { events, ...ticket } = data;
-  return { ...ticket, event_name: events?.name, venue_name: events?.venues?.name } as Ticket;
+  const group=await auth.client.from('group_passes').select('*').eq('order_id',ticket.order_id).maybeSingle();
+  if(!missingGroupPassSchema(group.error))dbError(group.error);
+  return customerPasses([{ ...ticket, event_name: events?.name, venue_name: events?.venues?.name } as Ticket],group.data?[group.data as GroupPassRow]:[])[0];
 }
 export async function getScans(venueId?: string): Promise<Scan[]> {
   const auth = await requireAuth();
@@ -151,7 +159,7 @@ export async function updateOwnerNotificationPreferences(userId: string, payload
   if (owner.userId !== userId) throw new AuthError(403, 'Account access denied.');
   await rpc('save_preferences', { payload }); return payload;
 }
-export async function validateAndScanTicket(token: string, assignmentId: string): Promise<{result:'VALID'|'ALREADY_USED'|'INVALID';ticket?:Ticket;message:string}> {
+export async function validateAndScanTicket(token: string, assignmentId: string): Promise<{result:'VALID'|'ALREADY_USED'|'INVALID'|'GROUP_READY';ticket?:Ticket;message:string}> {
   const staff = await requireStaff();
   if (!staff.assignments.some(a => a.id === assignmentId)) throw new AuthError(403, 'Scanner assignment access denied.');
   return rpc('scan_ticket', { token, assignment_id: assignmentId });

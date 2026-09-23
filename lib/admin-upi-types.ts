@@ -1,0 +1,7 @@
+import type {ManualPayment} from './manual-upi';
+export type UpiStatus='pending'|'approved'|'rejected'|'expired'|'all';
+export type UpiFilters={q:string;status:UpiStatus;venue:string;event:string;approver:string;range:string;from:string;to:string;min:string;max:string;sort:string;page:number;size:number};
+export const defaultUpiFilters:UpiFilters={q:'',status:'pending',venue:'',event:'',approver:'',range:'ALL',from:'',to:'',min:'',max:'',sort:'expiring',page:0,size:25};
+export type UpiRow=ManualPayment&{customer_phone:string;venue_name:string;reviewer_name:string|null};
+export type UpiReport={rows:UpiRow[];total:number;counts:Record<UpiStatus,number>;holdMinutes:number;serverTime:string;options:{venues:{id:string;name:string}[];events:{id:string;name:string;venue_id:string}[];approvers:{id:string;name:string}[]}};
+export type UpiDetail={state:ManualPayment['state'];order:{id:string;customer_name:string;customer_email:string;customer_phone:string;quantity:number;ticket_type:string;subtotal:number;fees:number;total:number;payment_status:string;created_at:string;expires_at:string;event_name:string;venue_name:string};payment:{utr:string;submitted_at:string;reviewed_at:string|null;reviewed_by:string|null;reviewer_name:string|null;review_note:string|null};tickets:{id:string;customer_name:string;ticket_type:string;status:string;scanned_at:string|null}[];audit:{id:string;action:string;created_at:string;actor_id:string;actor_name:string|null;details:Record<string,unknown>}[]};

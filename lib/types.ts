@@ -117,6 +117,10 @@ export interface Order {
 }
 
 export interface Ticket {
+  group_id?: string;
+  purchased_quantity?: number;
+  checked_in_quantity?: number;
+  remaining_quantity?: number;
   ticket_tier_id?: string | null;
   tier_unit_price?: number | null;
   tier_description?: string;

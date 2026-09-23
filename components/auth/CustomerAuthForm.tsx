@@ -4,13 +4,12 @@ import { ArrowRight, LockKeyhole, Mail, RefreshCw, ShieldCheck } from 'lucide-re
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { customerAuthRedirect } from '@/lib/customer-auth-origin';
-import MobileCustomerAuth from './MobileCustomerAuth';
 import { getMyMarketing, saveMyMarketing } from '@/lib/customer-marketing';
 
 type Mode = 'signin' | 'signup' | 'forgot' | 'reset';
 const callbackMessages: Record<string, string> = {
   confirmation: 'This confirmation link is invalid or has expired. Please request a new account confirmation.',
-  oauth_cancelled: 'Google sign-in was cancelled or could not be completed. Please try again or use email.',
+  oauth_cancelled: 'Google sign-in was cancelled or could not be completed. Please try again.',
   auth_callback: 'This sign-in link is invalid or has expired. Start again in this browser.',
   customer_access: 'This account cannot access the customer area. Please use the dedicated login for your assigned role.',
 };
@@ -22,7 +21,80 @@ function GoogleMark() {
 export default function CustomerAuthForm(props: { next?: string; initialMode?: Mode; errorCode?: string; appUrl?: string }) {
   return props.initialMode === 'reset' || props.initialMode === 'forgot'
     ? <LegacyCustomerAuthForm {...props}/>
-    : <MobileCustomerAuth {...props}/>;
+    : <GoogleCustomerAuthForm {...props}/>;
+}
+
+function GoogleCustomerAuthForm({ next, errorCode, appUrl }: { next?: string; errorCode?: string; appUrl?: string }) {
+  const [originReady, setOriginReady] = useState(!appUrl);
+  const [originError, setOriginError] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(errorCode ? callbackMessages[errorCode] || 'Sign-in could not be completed. Please try again.' : null);
+
+  useEffect(() => {
+    try {
+      const destination = customerAuthRedirect(window.location.href, appUrl);
+      if (destination) {
+        window.location.replace(destination);
+        return;
+      }
+      setOriginReady(true);
+    } catch {
+      setOriginError(true);
+    }
+  }, [appUrl]);
+
+  async function googleSignIn() {
+    if (!originReady || originError || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/auth/google', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ next }),
+        signal: AbortSignal.timeout(20000),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.url) {
+        throw new Error(response.status === 503
+          ? 'Google sign-in is temporarily unavailable. Please try again shortly.'
+          : data.error || 'Google sign-in could not start. Please try again.');
+      }
+      window.location.assign(data.url);
+    } catch (cause) {
+      setError(cause instanceof Error && cause.name !== 'TimeoutError'
+        ? cause.message
+        : 'Sign-in took too long. Check your connection and try again.');
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="mx-auto grid w-full max-w-6xl items-center gap-10 px-6 py-14 sm:px-10 sm:py-20 lg:min-h-[70vh] lg:grid-cols-2 lg:gap-20">
+      <div className="max-w-lg">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#c6b491]">ARS / After dark</p>
+        <h1 className="mt-6 text-5xl leading-[1.05] sm:text-6xl lg:text-7xl">Your next night.<br/><em>Your way in.</em></h1>
+        <p className="mt-6 max-w-sm text-base leading-8 text-zinc-400">Exceptional venues. Unforgettable nights. All your passes, together in one place.</p>
+      </div>
+
+      <div className="w-full border border-[#c6b491]/20 bg-[#c6b491]/[0.03] p-6 sm:p-10">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#c6b491]">ARS / Secure access</p>
+        <h2 className="mt-5 text-4xl leading-tight sm:text-5xl">Your night awaits.</h2>
+        <p className="mt-4 text-base leading-7 text-zinc-400">Sign in or create your ARS account with Google. No separate password needed.</p>
+
+        {(originError || error) && <div role="alert" className="mt-6 border-l-2 border-red-400 bg-red-950/20 p-4 text-sm leading-6 text-red-200">{originError ? 'The secure sign-in address is not configured correctly. Please contact ARS support.' : error}</div>}
+
+        <button type="button" onClick={googleSignIn} disabled={!originReady || originError || busy} aria-busy={busy} className="mt-8 flex min-h-14 w-full items-center justify-center gap-3 rounded-sm bg-[#eee9de] px-5 py-4 text-sm font-semibold text-[#0c0d0b] transition-colors hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#c6b491] disabled:cursor-not-allowed disabled:opacity-60">
+          {busy ? <RefreshCw className="h-[18px] w-[18px] animate-spin motion-reduce:animate-none" aria-hidden="true"/> : <GoogleMark/>}
+          {busy ? 'Connecting to Google...' : 'Continue with Google'}
+        </button>
+        {!originReady && !originError && <p role="status" className="mt-3 text-sm text-zinc-400">Preparing secure sign-in...</p>}
+        <noscript><p className="mt-3 text-sm text-[#c6b491]">Please enable JavaScript in your browser to sign in securely.</p></noscript>
+        <p className="mt-5 flex items-start gap-2 text-xs leading-6 text-zinc-400"><ShieldCheck className="mt-1 h-4 w-4 shrink-0 text-[#c6b491]" aria-hidden="true"/>Already have passes? Use the Google account associated with your booking.</p>
+        <div className="mt-8 border-t border-[#c6b491]/20 pt-5"><Link href="/events" className="inline-flex min-h-11 items-center gap-2 text-sm text-[#c6b491] underline-offset-4 hover:underline">Explore events first <ArrowRight className="h-4 w-4" aria-hidden="true"/></Link></div>
+      </div>
+    </section>
+  );
 }
 
 function LegacyCustomerAuthForm({ next, initialMode = 'signin', errorCode, appUrl }: { next?: string; initialMode?: Mode; errorCode?: string; appUrl?: string }) {

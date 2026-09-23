@@ -1,5 +1,5 @@
 'use client';
-import { eventPhase,matchesEventStatus } from '@/lib/event-schedule';
+import { eventPhase,matchesEventStatus,eventWindow } from '@/lib/event-schedule';
 
 
 
@@ -15,7 +15,7 @@ import { BarChart3 } from 'lucide-react';
 
 const statuses = ['all', 'upcoming', 'live', 'past', 'published', 'draft'];
 
-export default function OwnerEventsList({events,venueId,initialNow}:{events:Event[];venueId:string;initialNow:number}) {
+export default function OwnerEventsList({events,metrics,venueId,initialNow}:{events:Event[];metrics:Record<string,{sold:number;revenue:number;checkins:number}>;venueId:string;initialNow:number}) {
   const searchParams=useSearchParams();
   const requestedStatus=searchParams.get('status')||'all';
   const status=statuses.includes(requestedStatus)?requestedStatus:'all';
@@ -26,6 +26,7 @@ export default function OwnerEventsList({events,venueId,initialNow}:{events:Even
   },[]);
   const data={events,venue:{id:venueId}};
   const filtered=events.filter(event=>matchesEventStatus(event,status,now));
+  if(status==='past')filtered.sort((a,b)=>eventWindow(b).start-eventWindow(a).start||a.id.localeCompare(b.id));
   function selectStatus(value:string){
     const url=new URL(window.location.href);
     url.searchParams.set('venue',venueId);
@@ -63,11 +64,12 @@ export default function OwnerEventsList({events,venueId,initialNow}:{events:Even
                         <h2 className="font-black uppercase text-white">{e.name}</h2>
                         <span className={`text-[10px] font-black uppercase ${e.published ? 'text-emerald-400' : 'text-zinc-600'}`}>{e.published ? 'Published' : 'Draft'}</span>
                       </div>
-                      <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-accent-purple">{eventPhase(e, now)} / IST</p>
+                      <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-accent-purple">{eventPhase(e, now)==='past'?'Completed':eventPhase(e, now)} / IST</p>
                       <p className="mt-2 text-xs text-zinc-500">{formatDate(e.date)} · {formatTime(e.start_time)} - {formatTime(e.end_time)}</p>
-                      <p className="mt-4 text-sm text-zinc-400">{e.tickets_sold} / {e.ticket_capacity} sold · {formatINR(e.ticket_price)}</p>
+                      <p className="mt-4 text-sm text-zinc-400">{metrics[e.id]?.sold??'Unavailable'} / {e.ticket_capacity} sold · From {formatINR(e.ticket_price)}</p>
+                      <p className="mt-2 text-xs text-zinc-400">Revenue: {metrics[e.id]?formatINR(metrics[e.id].revenue):'Unavailable'} · Check-ins: {metrics[e.id]?.checkins??'Unavailable'}</p>
                       <div className="mt-5 flex flex-wrap items-center gap-2">
-                        <EventCreateForm mode="edit" venueId={data.venue.id} event={e} />
+                        {eventPhase(e,now)!=='past'&&<EventCreateForm mode="edit" venueId={data.venue.id} event={e} />}
                         <Link href={`/owner/events/${e.id}?venue=${data.venue.id}`} className="ars-button">Open analytics</Link>
                         <Link href={`/owner/events/${e.id}?venue=${data.venue.id}`} className="ars-button ars-button-secondary flex items-center gap-2"><BarChart3 size={14} /> Insights</Link>
                       </div>
@@ -78,9 +80,10 @@ export default function OwnerEventsList({events,venueId,initialNow}:{events:Even
             </div>
           </div>
         ) : (
-          <Empty title="No matching events" copy="Choose another status or create a new event." action={<EventCreateForm venueId={data.venue.id} />} />
+          <Empty title={status==='past'?'No completed events':'No matching events'} copy="Choose another status to view more events." />
         )}
       </Panel>
+      <p className="mt-4 text-xs text-zinc-500">Sales and revenue use paid bookings, including test bookings. Revenue is after discounts and excludes fees. Check-ins count used paid passes, not scan attempts. Capacity is configured inventory, not live occupancy. Completed events are read-only.</p>
     </>
   );
 }

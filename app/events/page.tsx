@@ -53,10 +53,10 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
   });
 
   return (
-    <LiveSearchProvider key={JSON.stringify(params)} initialQuery={params.query || ''}><div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 space-y-8">
-      <section className="space-y-4 border-b border-white/10 pb-6">
+    <LiveSearchProvider key={JSON.stringify(params)} initialQuery={params.query || ''}><div className="discovery-page mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 space-y-8">
+      <section className="discovery-heading space-y-4 border-b border-white/10 pb-6">
         <div className="eyebrow">Find your night</div>
-        <h1 className="text-6xl sm:text-8xl font-black uppercase text-white">Events</h1>
+        <h1 className="text-6xl sm:text-8xl font-black text-white">Find your <em>after dark.</em></h1>
         <p className="text-sm text-zinc-400 max-w-2xl">
           Discover upcoming nights and events happening now. All event times are in IST.
           {sourceCode && <span className="mt-2 block text-accent-cyan font-black uppercase tracking-[.16em]">Promoter referral: <code className="ars-chip">{sourceCode}</code></span>}

@@ -38,7 +38,7 @@ export default async function EventDetailPage({ params, searchParams }: EventDet
   const isSoldOut = remaining <= 0;
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-8 pb-28 lg:pb-8">
+    <div className="event-detail-page mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-8 pb-28 lg:pb-8">
       <FunnelObservation eventId={event.id} kind="event_view" source={sourceCode}/>
       <Link
         href={`/events${sourceCode ? `?source=${encodeURIComponent(sourceCode)}` : ''}`}

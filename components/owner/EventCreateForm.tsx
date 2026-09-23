@@ -1,5 +1,6 @@
 'use client';
 
+import EventPhotoUpload from '@/components/EventPhotoUpload';
 import { X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
@@ -40,6 +41,7 @@ export default function EventCreateForm({
   const [open, setOpen] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [uploading,setUploading]=useState(false);
 
   const defaults = useMemo(
     () => ({
@@ -66,6 +68,7 @@ export default function EventCreateForm({
   useEffect(()=>{if(!open)return;let cancelled=false;setTiersReady(false);if(isEdit&&event?.id){getManagedPassTiers(event.id).then(values=>{if(!cancelled){setTiers(editableTiers(values));setTiersReady(true);}}).catch(e=>{if(!cancelled)setError(e instanceof Error?e.message:'Unable to load tiers.');});}else{setTiers([defaultPassTier(defaults.ticket_price,defaults.ticket_capacity)]);setTiersReady(true);}return()=>{cancelled=true;};},[open,isEdit,event?.id,defaults.ticket_price,defaults.ticket_capacity]);
 
   async function save() {
+    if(busy||uploading)return;
     if(!tiersReady||!tiers.length){setError('Load or add pass tiers before saving.');return;}
     setBusy(true);
     setError('');
@@ -98,7 +101,7 @@ export default function EventCreateForm({
       return;
     }
     if (!payload.image) {
-      setError('Event image URL is required.');
+      setError('Upload an event photo before saving.');
       setBusy(false);
       return;
     }
@@ -164,7 +167,7 @@ export default function EventCreateForm({
         <div
           className="fixed inset-0 z-50 overflow-y-auto bg-black/85 p-4 backdrop-blur-sm"
           onClick={(event) => {
-            if (event.target === event.currentTarget) setOpen(false);
+            if (event.target === event.currentTarget&&!busy&&!uploading) setOpen(false);
           }}
         >
           <div className="mx-auto my-6 max-w-3xl border border-white/15 bg-[#0b0b0b] p-6 sm:p-8">
@@ -173,7 +176,7 @@ export default function EventCreateForm({
                 <p className="eyebrow">{isEdit ? 'Update event' : 'New event'}</p>
                 <h2 className="mt-2 text-3xl font-black uppercase">{isEdit ? 'Edit venue event' : 'Create a new event'}</h2>
               </div>
-              <button aria-label="Close" onClick={() => setOpen(false)}><X /></button>
+              <button aria-label="Close" disabled={busy||uploading} onClick={() => setOpen(false)}><X /></button>
             </div>
 
             <div className="mt-8 space-y-8">
@@ -182,7 +185,7 @@ export default function EventCreateForm({
                 <div className="grid gap-4 sm:grid-cols-2">
                   <label className="text-xs text-zinc-400">Event name<input required className={`${input} mt-2`} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></label>
                   <label className="text-xs text-zinc-400 sm:col-span-2">Description<textarea required className={`${input} mt-2 min-h-24`} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></label>
-                  <label className="text-xs text-zinc-400">Image URL<input type="url" required className={`${input} mt-2`} value={form.image} onChange={(e) => setForm({ ...form, image: e.target.value })} /></label>
+                  <EventPhotoUpload venueId={venueId} value={form.image} onChange={image=>setForm(previous=>({...previous,image}))} onBusyChange={setUploading}/>
                   <label className="text-xs text-zinc-400">Genre<input required className={`${input} mt-2`} value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} /></label>
                   <label className="text-xs text-zinc-400">Age limit<input type="number" min="18" className={`${input} mt-2`} value={form.age_limit} onChange={(e) => setForm({ ...form, age_limit: Number(e.target.value) })} /></label>
                 </div>
@@ -207,12 +210,12 @@ export default function EventCreateForm({
                 </label>
               </section>
 
-              {tiersReady&&<PassTierEditor value={tiers} onChange={setTiers} disabled={busy}/>}
+              {tiersReady&&<PassTierEditor value={tiers} onChange={setTiers} disabled={busy||uploading}/>}
               {error && <p role="alert" className="text-sm text-red-400">{error}</p>}
 
               <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
-                {!isEdit && <button disabled={busy} onClick={() => void save()} className="ars-button ars-button-secondary">Save draft</button>}
-                <button disabled={busy} onClick={() => void save()} className="ars-button">{isEdit ? 'Save changes' : 'Publish event'}</button>
+                {!isEdit && <button disabled={busy||uploading} onClick={() => void save()} className="ars-button ars-button-secondary">Save draft</button>}
+                <button disabled={busy||uploading} onClick={() => void save()} className="ars-button">{isEdit ? 'Save changes' : 'Publish event'}</button>
               </div>
             </div>
           </div>

@@ -18,10 +18,10 @@ export default function Navbar() {
   const navClass = 'nav-link text-xs font-medium uppercase tracking-[.13em] text-zinc-400 hover:text-zinc-100 transition-colors';
 
   return (
-    <header className={`ars-nav sticky top-0 z-50 border-b border-white/10 ${pathname === '/' ? 'bg-black/65 -mb-[74px]' : 'bg-black/95'}`}>
+    <header className={`ars-nav hospitality-nav sticky top-0 z-50 border-b border-white/10 ${pathname === '/' ? 'nav-over-hero' : 'nav-solid'}`} onKeyDown={event => { if (event.key === 'Escape') setOpen(false); }}>
       <div className="ars-page-shell flex h-[74px] items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link href="/" aria-label="ARS home" className="flex min-h-11 shrink-0 items-center py-2 transition-opacity hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#cbb88a]">
-          <Image src="/ars-logo.svg" alt="ARS Hospitality" width={240} height={100} priority className="h-11 w-auto object-contain sm:h-12" />
+          <Image src="/ars-logo.svg" alt="ARS Hospitality" width={240} height={100} priority className="h-11 w-auto object-contain sm:h-12" /><span className="nav-brand-note">Hospitality<br/>After dark</span>
         </Link>
 
         <nav aria-label="Primary navigation" className="hidden items-center gap-9 md:flex">

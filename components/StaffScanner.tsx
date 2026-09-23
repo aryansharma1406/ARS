@@ -10,8 +10,11 @@ QrCode,
 Search,
 XCircle
 } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import CameraQrScanner from '@/components/CameraQrScanner';
+import GroupGuestSelection from '@/components/GroupGuestSelection';
+type Group={id:string;purchased_quantity:number;checked_in_quantity:number;remaining_quantity:number};
+type GroupRequest={qrToken:string;assignmentId:string;requestId:string;quantity:number};
 
 export default function StaffScanner({ assignments }: { assignments: (VenueStaffAssignment & { venues: {name:string} })[] }) {
   const [assignmentId, setAssignmentId] = useState(assignments[0]?.id || '');
@@ -20,17 +23,41 @@ export default function StaffScanner({ assignments }: { assignments: (VenueStaff
   const [isProcessing, setIsProcessing] = useState(false);
   const processing = useRef(false);
   const [scanResponse, setScanResponse] = useState<{
-    result: 'VALID' | 'ALREADY_USED' | 'INVALID' | null;
+    result: 'VALID' | 'ALREADY_USED' | 'INVALID' | 'GROUP_READY' | null;
+    group?:Group;
+    replayed?:boolean;
     ticket?: Ticket;
     message?: string;
   }>({ result: null });
+  const [groupToken,setGroupToken]=useState('');
+  const [entering,setEntering]=useState(1);
+  const [pendingGroup,setPendingGroup]=useState<GroupRequest|null>(null);
+  const [storageReady,setStorageReady]=useState(false);
+  const receiptKey=`ars.group.pending.${assignmentId}`;
+  useEffect(()=>{
+    setStorageReady(false);setScanResponse({result:null});setGroupToken('');
+    try{const saved=sessionStorage.getItem(receiptKey);setPendingGroup(saved?JSON.parse(saved):null);setStorageReady(true);}
+    catch{setScanResponse({result:'INVALID',message:'Cannot open retry storage. Restart before scanning.'});}
+  },[receiptKey]);
+  async function confirmGroup(request:GroupRequest){
+    if(processing.current)return;processing.current=true;setIsProcessing(true);setPendingGroup(request);
+    try{
+      sessionStorage.setItem(receiptKey,JSON.stringify(request));
+      const response=await fetch('/api/staff/group-check-in',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(request)});
+      const data=await response.json();
+      if(!response.ok||!['VALID','INVALID','ALREADY_USED'].includes(data.result))throw new Error('Entry not confirmed. Retry the same request; do not admit yet.');
+      sessionStorage.removeItem(receiptKey);setPendingGroup(null);setGroupToken('');setScanResponse(data);
+      if(data.result==='VALID'&&!data.replayed)setStats(s=>({...s,validToday:s.validToday+data.admitted_quantity}));
+    }catch{setScanResponse({result:'INVALID',message:'Entry not confirmed. Retry the same request; do not admit yet.'});}
+    finally{processing.current=false;setIsProcessing(false);}
+  }
 
   const [scanHistory, setScanHistory] = useState<any[]>([]);
   const [stats, setStats] = useState({ totalScanned: 0, validToday: 0 });
 
   const handleScanSubmit = async (tokenToTest?: string) => {
     const token = (tokenToTest || inputToken).trim();
-    if (!token || processing.current) return;
+    if (!token || processing.current || pendingGroup || !storageReady || scanResponse.result==='GROUP_READY') return;
     processing.current = true;
 
     setIsProcessing(true);
@@ -47,11 +74,13 @@ export default function StaffScanner({ assignments }: { assignments: (VenueStaff
       });
 
       const data = await res.json();
-      if (data.result && (res.ok || res.status === 409)) {
+      if (data.result && (res.ok || res.status === 409 || res.status === 400)) {
+        if(data.result==='GROUP_READY'){setGroupToken(token);setEntering(1);}
         setScanResponse({
           result: data.result,
           ticket: data.ticket,
           message: data.message,
+          group:data.group,
         });
 
         // Update local scan feed
@@ -105,7 +134,7 @@ export default function StaffScanner({ assignments }: { assignments: (VenueStaff
               aria-label="Scanner assignment"
               className="mt-2 ars-select w-auto min-w-56"
               value={assignmentId}
-              disabled={isProcessing}
+          disabled={isProcessing || !!pendingGroup}
               onChange={e=>setAssignmentId(e.target.value)}
             >
               {assignments.map(a=><option key={a.id} value={a.id}>{a.venues.name} · {a.gate_name||'All gates'}{a.event_id?' · Event assignment':''}</option>)}
@@ -136,10 +165,20 @@ export default function StaffScanner({ assignments }: { assignments: (VenueStaff
               <QrCode className="w-5 h-5 text-accent-pink" /> QR entry verification
             </h3>
 
-            <CameraQrScanner key={assignmentId} disabled={isProcessing} onScan={token => void handleScanSubmit(token)} />
+            <CameraQrScanner key={assignmentId} disabled={isProcessing || !!pendingGroup || !storageReady || scanResponse.result==='GROUP_READY'} onScan={token => void handleScanSubmit(token)} />
+            {pendingGroup && <button type="button" className="ars-button" disabled={isProcessing} onClick={()=>void confirmGroup(pendingGroup)}>Retry same check-in safely</button>}
+            {scanResponse.result==='GROUP_READY' && scanResponse.group && <section className="ars-card p-5 space-y-3">
+              <h2 className="text-2xl font-bold text-[#e2d4ae]">GROUP PASS</h2><p>{scanResponse.ticket?.customer_name}</p><p>{scanResponse.ticket?.event_name}</p>
+              <p>Purchased: {scanResponse.group.purchased_quantity} · Already entered: {scanResponse.group.checked_in_quantity} · Remaining: {scanResponse.group.remaining_quantity}</p>
+              <GroupGuestSelection key={`${scanResponse.group.id}:${scanResponse.group.checked_in_quantity}`} purchased={scanResponse.group.purchased_quantity} entered={scanResponse.group.checked_in_quantity} disabled={isProcessing} onChange={setEntering}/>
+              <strong>ENTERING NOW: {entering}</strong>
+              <p>REMAINING AFTER: {scanResponse.group.remaining_quantity-entering}</p>
+              <button type="button" className="ars-button" disabled={isProcessing||entering<1||entering>scanResponse.group.remaining_quantity} onClick={()=>void confirmGroup({qrToken:groupToken,assignmentId,requestId:crypto.randomUUID(),quantity:entering})}>CHECK IN {entering}</button>
+              <button type="button" className="ars-button ars-button-secondary" disabled={isProcessing} onClick={()=>{setScanResponse({result:null});setGroupToken('');}}>Cancel</button>
+            </section>}
 
           {/* Real-time Result Overlay Display */}
-          {scanResponse.result && (
+          {scanResponse.result && scanResponse.result!=='GROUP_READY' && (
             <div role="status" aria-live="assertive" className={`p-6 rounded-sm border-2 space-y-3 animate-fadeIn ${
               scanResponse.result === 'VALID'
                 ? 'bg-emerald-950/60 border-emerald-400 text-emerald-200'
@@ -154,11 +193,12 @@ export default function StaffScanner({ assignments }: { assignments: (VenueStaff
 
                 <div>
                   <h2 className="text-2xl font-black tracking-tight">
-                    {scanResponse.result === 'VALID' && '✓ VALID TICKET - ENTRY GRANTED'}
-                    {scanResponse.result === 'ALREADY_USED' && '⚠ TICKET ALREADY USED'}
+                    {scanResponse.replayed ? 'RECOVERED RESULT - DO NOT ADMIT TWICE' : scanResponse.result === 'VALID' && 'ENTRY APPROVED'}
+                    {!scanResponse.replayed && scanResponse.result === 'ALREADY_USED' && (scanResponse.group?'GROUP PASS FULLY USED':'TICKET ALREADY USED')}
                     {scanResponse.result === 'INVALID' && '✕ INVALID TICKET'}
                   </h2>
                   <p className="text-xs opacity-90">{scanResponse.message}</p>
+                  {scanResponse.group && <p>{scanResponse.group.checked_in_quantity} / {scanResponse.group.purchased_quantity} entered · Remaining: {scanResponse.group.remaining_quantity}</p>}
                 </div>
               </div>
 

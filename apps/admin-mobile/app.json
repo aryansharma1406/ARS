@@ -1,0 +1,21 @@
+{
+  "expo": {
+    "name": "ARS Admin",
+    "slug": "ars-admin",
+    "version": "1.0.0",
+    "scheme": "ars-admin",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "bundleIdentifier": "events.ars.admin",
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "events.ars.admin"
+    },
+    "plugins": [
+      "expo-secure-store",
+      "expo-status-bar"
+    ]
+  }
+}

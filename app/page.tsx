@@ -2,81 +2,53 @@ import EventCard from '@/components/EventCard';
 import FeaturedVenueSlider from '@/components/FeaturedVenueSlider';
 import { getPublicCatalog } from '@/lib/catalog';
 import CatalogUnavailable from '@/components/CatalogUnavailable';
-import { ArrowDown, ArrowRight, CalendarDays, MapPin, ShieldCheck, Ticket, ScanLine } from 'lucide-react';
+import { ArrowDown, ArrowUpRight, CalendarDays, MapPin, ScanLine, ShieldCheck, Ticket } from 'lucide-react';
 import CatalogImage from '@/components/CatalogImage';
 import Link from 'next/link';
 
 export default async function HomePage() {
   const { events, venues, issue } = await getPublicCatalog();
-  // ARS brand artwork is independent of owner-managed event and venue images.
-  const heroImage = 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?q=85&w=2000&auto=format&fit=crop';
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
   const tonight = events.filter(event => event.date === today);
   const upcoming = events.filter(event => event.date > today);
-  return (
-    <div>
-      <section className="relative isolate min-h-[min(950px,100svh)] overflow-hidden border-b border-white/10">
-        <CatalogImage src={heroImage} alt="Lights over the dance floor" priority className="object-cover object-[65%_center]" sizes="100vw" />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/45 to-black/15" />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#080808] via-transparent to-black/30" />
-        <div className="relative mx-auto flex min-h-[min(950px,100svh)] max-w-7xl flex-col justify-end px-5 pb-8 pt-40 sm:px-8 sm:pb-10">
-          <div className="animate-fadeIn">
-            <p className="eyebrow mb-7 text-[10px] sm:text-xs">Curated nightlife · Instant access</p>
-            <h1 className="text-[clamp(3.3rem,10.5vw,9rem)] font-black uppercase leading-[.86] tracking-[-.075em]">Experience<br/><span className="text-[#eee8db]">the night.</span></h1>
-            <p className="mt-7 max-w-md text-sm leading-7 text-zinc-300 sm:text-base">Discover the best events, venues and nights worth remembering.</p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row"><Link href="/events" className="ars-button">Explore events <ArrowRight size={16}/></Link><Link href="/partner" className="ars-button ars-button-secondary">Partner with ARS</Link></div>
-          </div>
-          <div className="mt-16 flex items-center justify-between border-t border-white/20 pt-5 text-[10px] uppercase tracking-[.18em] text-zinc-400 sm:mt-20">
-            <a href="#tonight" className="flex items-center gap-3">Discover the line-up <ArrowDown size={14}/></a>
-            <span className="hidden sm:block">After dark. Beyond ordinary.</span>
-            <span className="hidden lg:block">ARS Hospitality</span>
-          </div>
-        </div>
-      </section>
+  return <div className="hospitality-home">
+    <section className="night-hero" aria-labelledby="night-title">
+      <div className="night-hero-image"><CatalogImage src="https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?q=85&w=2000&auto=format&fit=crop" alt="An illuminated dance floor, alive after dark" priority sizes="100vw" className="object-cover" /></div>
+      <div className="night-hero-shade" />
+      <div className="night-hero-top"><span className="eyebrow">ARS Hospitality</span><span>Extraordinary places. Unforgettable nights.</span></div>
+      <div className="night-hero-content">
+        <p className="eyebrow hero-intro">For the nights that stay with you</p>
+        <h1 id="night-title">Life begins<br/><em>after dark.</em></h1>
+        <div className="night-hero-bottom"><p>Good company. Exceptional spaces.<br/>A night that becomes a story.</p><Link href="/events" className="ars-button">Find your night <ArrowUpRight size={18}/></Link></div>
+      </div>
+      <div className="night-hero-foot"><a href="#tonight">Step inside <ArrowDown size={15}/></a><span>Nightlife, considered.</span><span className="hero-coordinate">An ARS experience</span></div>
+    </section>
 
-      <section id="tonight" className="ars-section scroll-mt-24">
-        <div className="section-heading"><div><p className="eyebrow mb-4">01 / The evening edit</p><h2>Tonight&apos;s picks</h2></div><Link href="/events" className="editorial-link">All events <ArrowRight size={16}/></Link></div>
-        {issue ? <CatalogUnavailable issue={issue}/> : tonight.length ? <div className="space-y-6"><EventCard event={tonight[0]} featured/>{tonight.length > 1 && <div className="mobile-event-rail grid gap-6 md:grid-cols-2">{tonight.slice(1,3).map(event => <EventCard key={event.id} event={event}/>)}</div>}</div> : <div className="grid gap-6 border-l-2 border-[#cbb88a]/50 bg-[#10100f] p-8 sm:grid-cols-[1fr_auto] sm:items-center sm:p-12"><div><CalendarDays size={24} className="mb-6 text-[#cbb88a]"/><h3 className="text-2xl font-black uppercase">No events tonight</h3><p className="mt-3 max-w-md text-sm leading-6 text-zinc-400">There are currently no published events for tonight. Your next night out could be just ahead.</p></div><Link href="/events" className="editorial-link w-fit">Explore the calendar <ArrowRight size={16}/></Link></div>}
-      </section>
+    <section className="ars-section brand-introduction" aria-label="The ARS experience"><p className="eyebrow">More than a night out</p><h2>The right room.<br/>The right people.<br/><em>Something unforgettable.</em></h2><div><p>We bring together the places, music and moments that make going out feel different. Discover your next night with ARS.</p><Link href="/events" className="editorial-link">Explore the experience <ArrowUpRight size={16}/></Link></div></section>
 
-      <section id="venues" className="scroll-mt-20 border-y border-white/10 bg-[radial-gradient(ellipse_at_top_left,_#242016_0%,_#0d0d0c_55%)]">
-        <div className="ars-section">
-          <div className="section-heading !items-end">
-            <div><p className="eyebrow mb-4">02 / Places with a pulse</p><h2>Featured venues</h2></div>
-            <p className="max-w-xs text-sm leading-6 text-zinc-400">Find your room. Discover the spaces behind the nights.</p>
-          </div>
-          {issue ? <CatalogUnavailable issue={issue}/> : venues.length ? (
-            <FeaturedVenueSlider>
-              {venues.map((venue, index) => (
-                <Link key={venue.id} href={'/events?venue=' + encodeURIComponent(venue.name)} className="group flex h-full flex-col overflow-hidden rounded-sm border border-white/10 bg-[#111110] transition-colors duration-200 hover:border-[#cbb88a]/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#cbb88a]">
-                  <div className="relative aspect-[16/10] overflow-hidden bg-[#191916]">
-                    <CatalogImage src={venue.image} alt={venue.name} className="object-cover transition-transform duration-500 motion-safe:group-hover:scale-[1.03]" sizes="(max-width:640px) 100vw,(max-width:1280px) 50vw,33vw"/>
-                    <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/65 via-transparent to-black/10"/>
-                    <span className="absolute left-4 top-4 border border-white/15 bg-black/70 px-2.5 py-1.5 text-[10px] font-semibold tracking-[.16em] text-[#eee8db] backdrop-blur">ARS / {String(index + 1).padStart(2, '0')}</span>
-                    <span className="absolute bottom-4 left-4 flex max-w-[calc(100%-2rem)] items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[.14em] text-white"><MapPin size={12} className="shrink-0 text-[#cbb88a]"/>{venue.location}</span>
-                  </div>
-                  <div className="flex flex-1 flex-col p-5 sm:p-6">
-                    <h3 className="min-h-[3.5rem] text-xl font-black uppercase leading-7 tracking-tight text-[#f2efe8] line-clamp-2">{venue.name}</h3>
-                    <p className="mt-2 min-h-10 text-xs leading-5 text-zinc-400 line-clamp-2">{venue.address || 'Discover the events at this venue.'}</p>
-                    <div className="mt-5 flex items-center justify-between border-t border-white/10 pt-4">
-                      <span className="text-[10px] font-bold uppercase tracking-[.16em] text-[#cbb88a]">Explore events</span>
-                      <span className="flex h-8 w-8 items-center justify-center rounded-full border border-[#cbb88a]/25 text-[#cbb88a] transition-colors group-hover:bg-[#cbb88a] group-hover:text-black"><ArrowRight size={15}/></span>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </FeaturedVenueSlider>
-          ) : <p className="border-t border-white/10 py-10 text-zinc-400">Venue announcements will appear here when available.</p>}
-        </div>
-      </section>
+    <section id="tonight" className="ars-section night-edit">
+      <div className="section-heading"><div><p className="eyebrow">01 / The evening edit</p><h2>On the guest list.</h2></div><Link href="/events" className="editorial-link">All events <ArrowUpRight size={16}/></Link></div>
+      {issue ? <CatalogUnavailable issue={issue}/> : tonight.length ? <div className="space-y-6"><EventCard event={tonight[0]} featured/>{tonight.length > 1 && <div className="mobile-event-rail grid gap-6 md:grid-cols-2">{tonight.slice(1,3).map(event => <EventCard key={event.id} event={event}/>)}</div>}</div> : <div className="night-empty"><CalendarDays size={28} strokeWidth={1}/><div><p className="eyebrow">Tonight / The calendar is quiet</p><h3>A little anticipation.</h3><p>No published events tonight. Explore the calendar for your next night out.</p></div><Link href="/events" className="editorial-link">View the calendar <ArrowUpRight size={16}/></Link></div>}
+    </section>
 
-      <section className="ars-section"><div className="section-heading"><div><p className="eyebrow mb-4">03 / Make plans after dark</p><h2>Upcoming events</h2></div><Link href="/events" className="editorial-link">View calendar <ArrowRight size={16}/></Link></div>{issue ? <CatalogUnavailable issue={issue}/> : upcoming.length ? <div className="mobile-event-rail grid gap-6 md:grid-cols-2 lg:grid-cols-3">{upcoming.slice(0,3).map(event => <EventCard key={event.id} event={event}/>)}</div> : <div className="border-b border-white/10 pb-10"><h3 className="text-xl font-bold uppercase">The next chapter is coming</h3><p className="mt-3 text-sm text-zinc-400">New nights will appear as soon as events are published.</p></div>}</section>
+    <section id="venues" className="venue-section"><div className="ars-section">
+      <div className="section-heading"><div><p className="eyebrow">02 / A sense of place</p><h2>Find your room.</h2></div><p className="section-note">Intimate corners. Electric dance floors.<br/>Discover the spaces behind the nights.</p></div>
+      {issue ? <CatalogUnavailable issue={issue}/> : venues.length ? <FeaturedVenueSlider>{venues.map((venue,index) => <Link key={venue.id} href={'/events?venue=' + encodeURIComponent(venue.name)} className="venue-editorial-card group">
+        <div className="venue-editorial-image"><CatalogImage src={venue.image} alt={venue.name} className="object-cover transition-transform duration-700 motion-safe:group-hover:scale-[1.035]" sizes="(max-width:640px) 100vw,(max-width:1280px) 50vw,33vw"/><span className="venue-index">ARS / {String(index+1).padStart(2,'0')}</span><span className="venue-arrow"><ArrowUpRight size={20}/></span></div>
+        <div className="venue-editorial-copy"><p className="eyebrow"><MapPin size={12}/>{venue.location}</p><h3>{venue.name}</h3><p>{venue.address || 'Discover the events at this venue.'}</p><span className="editorial-link">Explore the venue <ArrowUpRight size={14}/></span></div>
+      </Link>)}</FeaturedVenueSlider> : <div className="night-empty"><p>Our next venue announcements will appear here.</p></div>}
+    </div></section>
 
-      <section className="border-y border-white/10"><div className="ars-section grid gap-12 lg:grid-cols-[1.1fr_1fr]"><div><p className="eyebrow mb-5">Why ARS</p><h2 className="text-5xl font-black uppercase leading-[.95] tracking-[-.06em] sm:text-7xl">A great night.<br/>A seamless<br/><span className="text-[#b6a786]">way in.</span></h2></div><div className="divide-y divide-white/15">{[[Ticket,'Your night, in one place','Explore published events, compare the details and choose your access.'],[ShieldCheck,'A considered checkout','Review your pass, quantity and fees before paying through Razorpay.'],[ScanLine,'Straight to your digital pass','Once payment is verified, your QR pass is ready in your account.']].map(([Icon,title,copy]) => { const Symbol = Icon as typeof Ticket; return <div key={String(title)} className="flex gap-5 py-7"><Symbol size={22} className="mt-1 shrink-0 text-[#cbb88a]"/><div><h3 className="text-lg font-bold">{String(title)}</h3><p className="mt-2 text-sm leading-6 text-zinc-400">{String(copy)}</p></div></div>; })}</div></div></section>
+    <section className="ars-section"><div className="section-heading"><div><p className="eyebrow">03 / Worth making plans for</p><h2>Next on the calendar.</h2></div><Link href="/events" className="editorial-link">Full line-up <ArrowUpRight size={16}/></Link></div>{issue ? <CatalogUnavailable issue={issue}/> : upcoming.length ? <div className="mobile-event-rail grid gap-6 md:grid-cols-2 lg:grid-cols-3">{upcoming.slice(0,3).map(event => <EventCard key={event.id} event={event}/>)}</div> : <div className="night-empty"><CalendarDays size={28} strokeWidth={1}/><div><h3>The next chapter is coming.</h3><p>New nights appear here as soon as they are announced.</p></div><Link href="/events" className="editorial-link">Explore events <ArrowUpRight size={16}/></Link></div>}</section>
 
-      <section className="ars-section"><p className="eyebrow mb-5">How it works</p><h2 className="text-4xl font-black uppercase tracking-tight sm:text-5xl">Three steps to the night.</h2><div className="mt-12 grid gap-8 md:grid-cols-3">{[['01','Find your night','Browse the line-up and choose an event that moves you.'],['02','Choose your access','Select your quantity, review the total and complete payment.'],['03','Meet us at the door','Bring your digital QR pass and matching photo ID.']].map(([number,title,copy]) => <div key={number} className="border-t border-white/20 pt-6"><p className="mb-8 text-xs text-[#cbb88a]">{number}</p><h3 className="text-xl font-bold uppercase">{title}</h3><p className="mt-3 max-w-xs text-sm leading-6 text-zinc-400">{copy}</p></div>)}</div></section>
+    <section className="ars-section experience-story"><div className="experience-image"><CatalogImage src="https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?auto=format&fit=crop&w=1200&q=80" alt="A crowd sharing a moment under concert lights" sizes="(max-width:768px) 100vw,50vw" className="object-cover"/><span>Made of moments.</span></div><div className="experience-copy"><p className="eyebrow">The ARS way</p><h2>Lose yourself<br/>in the moment.<br/><em>Not the details.</em></h2><p>From finding your kind of night to arriving at the door, the experience should feel effortless.</p><div className="experience-point"><ShieldCheck size={20} strokeWidth={1}/><div><h3>Your night, thoughtfully arranged.</h3><p>Clear event details, a choice of passes and a secure checkout.</p></div></div><div className="experience-point"><ScanLine size={20} strokeWidth={1}/><div><h3>One pass. Your way in.</h3><p>Your digital QR pass is ready in your account after payment is verified.</p></div></div><Link href="/account/tickets" className="editorial-link">Open My Pass <ArrowUpRight size={16}/></Link></div></section>
 
-      <section className="border-y border-[#cbb88a]/20 bg-[#151410]"><div className="ars-section grid items-end gap-10 md:grid-cols-[1fr_auto]"><div><p className="eyebrow mb-5">Partner with ARS</p><h2 className="text-5xl font-black uppercase leading-none tracking-[-.06em] sm:text-7xl">You set the scene.<br/>We open the doors.</h2><p className="mt-6 max-w-md text-sm leading-6 text-zinc-400">Bring your venue to ARS for event sales, guest access and operations built around the night.</p><p className="mt-3 text-xs uppercase tracking-[.12em] text-[#cbb88a]">Already an ARS venue partner? <Link href="/owner/login" className="underline underline-offset-4 hover:text-white">Owner login</Link></p></div><Link href="/partner" className="ars-button w-fit">Request partnership <ArrowRight size={16}/></Link></div></section>
-    </div>
-  );
+    <section className="ars-section guest-essentials"><div className="section-heading"><div><p className="eyebrow">Before the night begins</p><h2>A considered arrival.</h2></div><p className="section-note">Less planning. More being there.</p></div><div className="essentials-grid">{[
+      {number:'01', title:'Find your night', copy:'Explore the line-up, discover the venue and choose an event that moves you.', href:'/events', label:'Discover events', Icon:CalendarDays},
+      {number:'02', title:'Choose your access', copy:'Compare pass benefits, select your guests and review the total before paying.', href:'/events', label:'Explore passes', Icon:Ticket},
+      {number:'03', title:'Meet us at the door', copy:'Bring your digital QR pass and matching photo ID. Check your event’s entry requirements.', href:'/account/tickets', label:'Your digital pass', Icon:ScanLine},
+    ].map(({number,title,copy,href,label,Icon}) => <Link href={href} key={number} className="essential-card"><span className="essential-number">{number}</span><Icon size={26} strokeWidth={1}/><h3>{title}</h3><p>{copy}</p><span className="editorial-link">{label}<ArrowUpRight size={16}/></span></Link>)}</div></section>
+
+    <section className="partnership-invitation"><div className="ars-section"><p className="eyebrow">For places with a point of view</p><h2>You set the scene.<br/><em>Let&apos;s make the night.</em></h2><div><p>Bring your venue to ARS. Event discovery, guest access and operations, built around your world.</p><Link href="/partner" className="ars-button">Partner with ARS <ArrowUpRight size={18}/></Link></div><p className="partner-existing">Already part of ARS? <Link href="/owner/login">Owner login</Link></p></div></section>
+  </div>;
 }

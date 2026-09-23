@@ -1,6 +1,7 @@
 import AppChrome from '@/components/AppChrome';
 import type { Metadata } from 'next';
 import './globals.css';
+import './hospitality.css';
 
 export const metadata: Metadata = {
   title: "ARS | Experience the Night",
@@ -16,7 +17,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
+    // Browser extensions can inject root theme attributes before React hydrates.
+    // Suppress only this element's mismatch; application children remain checked.
+    <html lang="en" className="dark" suppressHydrationWarning>
       <body className="min-h-screen flex flex-col bg-background text-gray-100 antialiased selection:bg-[#cbb88a] selection:text-black">
         <AppChrome>{children}</AppChrome>
       </body>

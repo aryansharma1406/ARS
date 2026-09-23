@@ -18,7 +18,7 @@ export default async function MyTickets({ searchParams }: { searchParams: Promis
     events.set(row.id, { ...row, venue_name: venue?.name } as unknown as Event);
   }
   const params = await searchParams;
-  return <><div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-5 pt-6 text-xs text-zinc-400"><span>Your account. Your passes.</span><Link href="/account/profile" className="text-[#cbb88a] underline underline-offset-4">Manage account</Link></div><MemberPassCollection
+  return <><div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-5 pt-6 text-xs text-zinc-400"><span>Your account. Your passes.</span><Link href="/account/payments" className="text-[#cbb88a] underline underline-offset-4">Payments & verification status</Link><Link href="/account/profile" className="text-[#cbb88a] underline underline-offset-4">Manage account</Link></div><MemberPassCollection
     key={JSON.stringify(params)}
     customer={{ name: customer.name || 'ARS Member', email: customer.phone || customer.email, userId: customer.userId }}
     tickets={tickets.map(({ qr_token, ...ticket }) => ticket)}

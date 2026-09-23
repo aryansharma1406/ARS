@@ -32,6 +32,8 @@ it('reserves the selected tier, finalizes once and records approved then duplica
  await asRole(db,null,()=>db.query("SELECT public.bind_payment_order($1,$2,'order_current')",[ids.customer,order]),'service_role');
  const result=await asRole(db,null,()=>db.query<{result:{tickets:{id:string}[]}}>("SELECT public.finalize_payment($1,'order_current','pay_current',103000) AS result",[ids.customer]),'service_role');
  const ticket=result.rows[0].result.tickets[0].id;
+ // Issuance uses a future event; entry requires the event to actually be open.
+ await db.query("UPDATE public.events SET date=((clock_timestamp()-interval '1 hour') AT TIME ZONE 'Asia/Kolkata')::date, start_time=((clock_timestamp()-interval '1 hour') AT TIME ZONE 'Asia/Kolkata')::time, end_time=((clock_timestamp()+interval '1 hour') AT TIME ZONE 'Asia/Kolkata')::time WHERE id=$1",[ids.event]);
  expect((await db.query<{ticket_tier_id:string}>('SELECT ticket_tier_id FROM public.tickets WHERE id=$1',[ticket])).rows[0].ticket_tier_id).toBe(tier);
  const scan=()=>asRole(db,ids.staff,()=>db.query<{result:{result:string}}>('SELECT public.scan_ticket($1,$2) AS result',[ticket,ids.assignment]));
  expect((await scan()).rows[0].result.result).toBe('VALID');expect((await scan()).rows[0].result.result).toBe('ALREADY_USED');

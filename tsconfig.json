@@ -38,6 +38,7 @@
   "exclude": [
     "node_modules",
     "noxpass",
-    "apps/staff-scanner"
+    "apps/staff-scanner",
+    "apps/admin-mobile"
   ]
 }

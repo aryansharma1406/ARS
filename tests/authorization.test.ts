@@ -41,6 +41,7 @@ beforeEach(()=>{
   if(name==='scan_ticket')return {data:{result:'VALID',message:'Entry granted'},error:null};
   if(name==='portal_session_valid')return {data:state.sessionValid,error:null};
   if(name==='reserve_tier_order')return {data:{id:'pending-order',total:1030},error:null};
+  if(name==='reserve_manual_upi')return {data:'pending-order',error:null};
   if(name==='finalize_payment')return {data:{tickets:[{id:'ticket-owned'}]},error:null};
   return {data:[],error:null};
  });
@@ -123,9 +124,16 @@ describe('direct API and server action authorization',()=>{
  it('checkout rejects price and customer-ID overrides, binds authenticated identity',async()=>{
   state.role='customer';state.userId='customer';
   expect((await createPOST(request('/api/checkout/create-order',{amount:1,customer_id:'victim'}))).status).toBe(400);expect(state.service).not.toHaveBeenCalled();
-  expect((await createPOST(request('/api/checkout/create-order',{eventId:'event-a',tierId:'50000000-0000-4000-8000-000000000001',expectedTotal:1030,quantity:1,customer_name:'Guest',customer_phone:'1234567890',sourceCode:'SOURCE-A'}))).status).toBe(200);
-  expect(state.rpc).toHaveBeenCalledWith('reserve_tier_order',expect.objectContaining({target_customer:'customer',target_event:'event-a',ticket_quantity:1}));
-  expect(state.rpc).toHaveBeenCalledWith('bind_payment_order',expect.objectContaining({target_customer:'customer',target_order:'pending-order',provider_order:'order_bound'}));
+  const checkout={eventId:'event-a',tierId:'50000000-0000-4000-8000-000000000001',requestId:'70000000-0000-4000-8000-000000000001',expectedTotal:1030,quantity:1,customer_name:'Guest',customer_phone:'1234567890',sourceCode:'SOURCE-A'};
+  for(const override of [{amount:1},{customer_id:'victim'}])expect((await createPOST(request('/api/checkout/create-order',{...checkout,...override}))).status).toBe(400);
+  for(const requestId of [undefined,'invalid'])expect((await createPOST(request('/api/checkout/create-order',{...checkout,requestId}))).status).toBe(400);
+  expect(state.service).not.toHaveBeenCalled();
+  expect(state.rpc).not.toHaveBeenCalled();
+  const response=await createPOST(request('/api/checkout/create-order',checkout));
+  expect(response.status).toBe(200);
+  expect(await response.json()).toEqual({success:true,orderId:'pending-order'});
+  expect(state.rpc).toHaveBeenCalledWith('reserve_manual_upi',{target_customer:'customer',target_event:'event-a',target_tier:checkout.tierId,ticket_quantity:1,guest_name:'Guest',guest_phone:'1234567890',referral_code:'SOURCE-A',discount_code:null,expected_total:1030,visit_id:null,request_key:checkout.requestId});
+  expect(state.rpc).toHaveBeenCalledTimes(1);
  });
  it('verification rejects foreign orders and late changes to identity/event/quantity/attribution',async()=>{
   state.role='customer';state.userId='customer';

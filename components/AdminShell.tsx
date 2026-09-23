@@ -29,6 +29,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { label: 'Compare Venues', href: '/admin/compare', icon: Building2 },
     { label: 'Venues & Commission', href: '/admin/venues', icon: Building2 },
     { label: 'Events & Pricing', href: '/admin/events', icon: Calendar },
+    { label: 'UPI Verification', href: '/admin/payments', icon: DollarSign },
     { label: 'Tickets & Orders', href: '/admin/tickets', icon: Ticket },
     { label: 'Promoter Attribution', href: '/admin/promoters', icon: Zap },
     { label: 'Customer Coupons', href: '/admin/coupons', icon: Ticket },

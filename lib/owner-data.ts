@@ -54,11 +54,22 @@ export const getOwnerVenueData = cache(async function getOwnerVenueData(requeste
   const venue = venues.find(v => v.id === requestedVenueId) || venues[0];
   if (requestedVenueId && !owner.venueIds.includes(requestedVenueId)) forbidden();
 
-  // One authenticated, explicitly venue-scoped read per dataset. RLS remains active.
+  // Page historical event metrics so the API row limit cannot truncate totals.
+  // Every page uses the authenticated client and the same venue scope; RLS remains active.
+  async function readVenueRows<T>(table:string,columns:string,venueColumn:string):Promise<T[]> {
+    const rows:T[]=[];
+    for(let offset=0;;offset+=1000){
+      const result=await client.from(table).select(columns).eq(venueColumn,venue.id).order('id').range(offset,offset+999);
+      dbError(result.error);
+      const page=(result.data||[]) as unknown as T[];
+      rows.push(...page);
+      if(page.length<1000)return rows;
+    }
+  }
   const [eventResult, orderResult, ticketResult, sourceResult, scanResult, settlementResult] = await Promise.all([
-    client.from('events').select('*').eq('venue_id', venue.id),
-    client.from('orders').select('*,events!inner(venue_id)').eq('events.venue_id', venue.id),
-    client.from('tickets').select('*,events!inner(name,venue_id)').eq('events.venue_id', venue.id),
+    readVenueRows<Event>('events','*','venue_id').then(data=>({data,error:null})),
+    readVenueRows<Order>('orders','*,events!inner(venue_id)','events.venue_id').then(data=>({data,error:null})),
+    readVenueRows<Ticket&{events:{name:string}|null}>('tickets','*,events!inner(name,venue_id)','events.venue_id').then(data=>({data,error:null})),
     client.from('sources').select('*').eq('venue_id', venue.id),
     client.from('scans').select('*').eq('venue_id', venue.id),
     client.from('settlements').select('*').eq('venue_id', venue.id),
