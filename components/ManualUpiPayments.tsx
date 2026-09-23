@@ -1,4 +1,5 @@
 'use client';
+import UpiAppPicker from '@/components/UpiAppPicker';
 import {useCallback,useEffect,useRef,useState} from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -54,7 +55,7 @@ function PaymentCard({payment:p,admin,holdMinutes,busy,onAction}:{payment:Manual
   {admin&&<dl className="grid gap-4 border-y border-white/10 py-4 text-sm sm:grid-cols-2"><div><dt className="ars-label">Venue</dt><dd className="text-zinc-300">{p.venue_name}</dd></div><div><dt className="ars-label">Submitted</dt><dd className="text-zinc-300">{p.submitted_at?`${paymentTime(p.submitted_at)} IST`:'Not recorded'}</dd></div></dl>}
   {p.utr&&<p className="break-all text-sm">UTR / Transaction ID: <strong>{p.utr}</strong></p>}
   {p.state==='AWAITING_UTR'&&!admin&&<>
-   <div className="grid gap-6 sm:grid-cols-[220px_1fr] sm:items-center"><Image src={UPI_QR} alt="ARS UPI payment QR" width={220} height={220} className="h-auto w-full max-w-[220px] bg-white p-3"/><div className="space-y-3 text-sm"><p className="text-zinc-400">Pay exactly <strong className="text-[#e2d4ae]">{paymentMoney(p.total)}</strong></p><p className="break-all">UPI ID: <strong>{UPI_ID}</strong></p><p>Payee: {UPI_PAYEE}</p><p className="text-zinc-400">The QR does not prefill the amount. Enter the exact payable amount in your UPI app.</p><a className="ars-button" href={`upi://pay?pa=${encodeURIComponent(UPI_ID)}&pn=${encodeURIComponent(UPI_PAYEE)}&am=${Number(p.total).toFixed(2)}&cu=INR&tn=${encodeURIComponent('ARS '+p.id)}`}>Open UPI app</a></div></div>
+   <div className="grid gap-6 sm:grid-cols-[220px_1fr] sm:items-center"><Image src={UPI_QR} alt="ARS UPI payment QR" width={220} height={220} className="h-auto w-full max-w-[220px] bg-white p-3"/><div className="space-y-3 text-sm"><p className="text-zinc-400">Pay exactly <strong className="text-[#e2d4ae]">{paymentMoney(p.total)}</strong></p><p className="break-all">UPI ID: <strong>{UPI_ID}</strong></p><p>Payee: {UPI_PAYEE}</p><p className="text-zinc-400">The QR does not prefill the amount. Enter the exact payable amount in your UPI app.</p><UpiAppPicker href={`upi://pay?pa=${encodeURIComponent(UPI_ID)}/></div></div>
    <p className="text-sm text-zinc-400">Submit your reference before {paymentTime(p.expires_at)} IST. Submission reserves your tickets for {holdMinutes} minutes while ARS reviews payment. Do not pay again if confirmation is delayed.</p>
    <form className="space-y-3" onSubmit={e=>{e.preventDefault();void onAction({orderId:p.id,utr});}}><label htmlFor={'utr-'+p.id} className="ars-label">UTR / Transaction ID</label><input id={'utr-'+p.id} required minLength={6} maxLength={64} pattern="[A-Za-z0-9]{6,64}" autoComplete="off" spellCheck={false} className="ars-input" placeholder="Enter your payment reference" value={utr} onChange={e=>setUtr(e.target.value.trim())}/><button disabled={busy} className="ars-button">{busy?'Submitting...':'Submit payment for verification'}</button></form>
   </>}
