@@ -6,11 +6,16 @@ import { ArrowDown, ArrowUpRight, CalendarDays, MapPin, ScanLine, ShieldCheck, T
 import CatalogImage from '@/components/CatalogImage';
 import Link from 'next/link';
 
+// Published events and the IST date must stay current after deployment.
+export const dynamic = 'force-dynamic';
+
 export default async function HomePage() {
   const { events, venues, issue } = await getPublicCatalog();
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
   const tonight = events.filter(event => event.date === today);
-  const upcoming = events.filter(event => event.date > today);
+  const upcoming = events.filter(event => event.date > today).sort((a, b) =>
+    a.date.localeCompare(b.date) || a.start_time.localeCompare(b.start_time) || a.id.localeCompare(b.id)
+  );
   return <div className="hospitality-home">
     <section className="night-hero" aria-labelledby="night-title">
       <div className="night-hero-image"><CatalogImage src="https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?q=85&w=2000&auto=format&fit=crop" alt="An illuminated dance floor, alive after dark" priority sizes="100vw" className="object-cover" /></div>
