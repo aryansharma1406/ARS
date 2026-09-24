@@ -1,7 +1,8 @@
 {
   "expo": {
     "name": "ARS Door",
-    "slug": "ars-staff-scanner",
+    "slug": "ars-door-staff",
+    "owner": "ars-hospitality",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
@@ -15,7 +16,11 @@
       "blockedPermissions": [
         "android.permission.RECORD_AUDIO"
       ],
-      "predictiveBackGestureEnabled": true
+      "predictiveBackGestureEnabled": true,
+      "permissions": [
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.CAMERA"
+      ]
     },
     "plugins": [
       [
@@ -43,7 +48,10 @@
       ]
     ],
     "extra": {
-      "purpose": "Staff-only venue entry operations"
+      "purpose": "Staff-only venue entry operations",
+      "eas": {
+        "projectId": "3eadf436-00ac-4cb4-9f62-c99ed4a4d68f"
+      }
     }
   }
 }
