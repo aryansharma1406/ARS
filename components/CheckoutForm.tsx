@@ -18,6 +18,7 @@ User
 } from 'lucide-react';
 import CatalogImage from '@/components/CatalogImage';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import React,{ useRef,useState } from 'react';
 
 interface CheckoutFormProps {
@@ -50,6 +51,7 @@ export default function CheckoutForm({ event, tiers, initialTierId, initialQuant
 
   const [quantity, setQuantity] = useState(Math.min(10, Math.max(1, initialQuantity)));
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [policiesAccepted,setPoliciesAccepted] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [promoterCode, setPromoterCode] = useState('');
   const [referralCode, setReferralCode] = useState(sourceCode || '');
@@ -113,6 +115,10 @@ export default function CheckoutForm({ event, tiers, initialTierId, initialQuant
       return;
     }
 
+    if (!policiesAccepted) {
+      setErrorMsg('Please review and accept the booking terms and acknowledge the privacy notice.');
+      return;
+    }
     setErrorMsg('');
     setIsSubmitting(true);
 
@@ -210,7 +216,7 @@ export default function CheckoutForm({ event, tiers, initialTierId, initialQuant
 
         <div className="flex gap-3 border-t border-white/10 pt-5 text-xs leading-6 text-zinc-400">
           <Ticket className="mt-1 h-4 w-4 shrink-0 text-[#cbb88a]" />
-          <p>{quantity === 1 ? 'One digital entry pass' : `${quantity} digital entry passes`} will be issued after manual payment verification. Every guest must meet the event&apos;s age requirement and carry a valid government ID.</p>
+          <p>{quantity === 1 ? 'One digital entry pass' : `One group QR pass for ${quantity} guests`} will be issued after manual payment verification. Every guest must meet the event&apos;s age requirement and carry a valid government ID.</p>
         </div>
       </div>
 
@@ -283,6 +289,15 @@ export default function CheckoutForm({ event, tiers, initialTierId, initialQuant
           {referralCode && <div className="flex items-center justify-between gap-3 border-t border-white/10 pt-3 text-xs text-zinc-400"><span>Promoter referral attached from your link.</span><button type="button" disabled={isSubmitting || verifyingCode} onClick={() => setReferralCode('')} className="underline underline-offset-4">Remove referral</button></div>}
         </div>
 
+        <div className="space-y-3 border-t border-white/10 pt-5 text-xs leading-6 text-zinc-300">
+          <p className="text-[#e2d4ae]">Draft policies: pending legal review before public launch. Unresolved details are marked in each policy.</p>
+          <div className="flex items-start gap-3">
+            <input id="checkout-policy-agreement" type="checkbox" required checked={policiesAccepted} onChange={e=>setPoliciesAccepted(e.target.checked)} disabled={isSubmitting} aria-describedby="checkout-policy-links" className="mt-1 size-4 shrink-0 accent-[#cbb88a]"/>
+            <label htmlFor="checkout-policy-agreement">I have reviewed and agree to the booking Terms &amp; Conditions, Ticket &amp; Event Terms and Cancellation &amp; Refund Policy, and acknowledge the Privacy Policy. I understand that UTR submission is not payment approval and my pass is issued only after verification.</label>
+          </div>
+          <nav id="checkout-policy-links" aria-label="Checkout policies" className="flex flex-wrap gap-x-4 gap-y-1 text-[#e2d4ae]">{[['terms','Terms & Conditions'],['privacy','Privacy Policy'],['cancellation-refunds','Cancellation & Refunds'],['ticket-event-terms','Ticket & Event Terms'],['payments','Payment Policy']].map(([slug,label])=><Link key={slug} href={`/legal/${slug}`} target="_blank" rel="noopener noreferrer" className="py-2 underline underline-offset-4">{label}<span className="sr-only"> (opens in a new tab)</span></Link>)}</nav>
+          <p className="text-zinc-400">This does not opt you into marketing or waive statutory consumer rights. <Link href="/account/marketing" target="_blank" rel="noopener noreferrer" className="text-[#e2d4ae] underline">Manage optional marketing preferences<span className="sr-only"> (opens in a new tab)</span></Link>.</p>
+        </div>
 
         <button
           type="submit"
