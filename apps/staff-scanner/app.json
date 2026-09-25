@@ -13,6 +13,11 @@
     },
     "android": {
       "package": "events.ars.staffscanner",
+      "icon": "./assets/ars-launcher-icon.png",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/ars-launcher-foreground.png",
+        "backgroundColor": "#0B0C08"
+      },
       "blockedPermissions": [
         "android.permission.RECORD_AUDIO"
       ],

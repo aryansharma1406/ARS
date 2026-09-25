@@ -11,11 +11,22 @@
       "supportsTablet": true
     },
     "android": {
-      "package": "events.ars.admin"
+      "package": "events.ars.admin",
+      "icon": "./assets/ars-launcher-icon.png",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/ars-launcher-foreground.png",
+        "backgroundColor": "#0B0C08"
+      }
     },
     "plugins": [
       "expo-secure-store",
       "expo-status-bar"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "33e71100-7295-48bf-92d6-8a4778f2432a"
+      }
+    },
+    "owner": "ars-hospitality"
   }
 }
