@@ -27,8 +27,27 @@ export function checkOrigin(request: Request) {
 }
 export async function jsonBody(request: Request) {
   if (!request.headers.get('content-type')?.startsWith('application/json')) throw new AuthError(400, 'Expected JSON.');
-  const body = await request.text();
-  if (body.length > 16000) throw new AuthError(400, 'Request is too large.');
+  const limit = 16000;
+  if (Number(request.headers.get('content-length')) > limit) throw new AuthError(400, 'Request is too large.');
+  const reader = request.body?.getReader();
+  const decoder = new TextDecoder();
+  let body = '';
+  let size = 0;
+  if (reader) {
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        size += value.byteLength;
+        if (size > limit) {
+          await reader.cancel();
+          throw new AuthError(400, 'Request is too large.');
+        }
+        body += decoder.decode(value, { stream: true });
+      }
+      body += decoder.decode();
+    } finally { reader.releaseLock(); }
+  }
   try {
     const value = JSON.parse(body);
     if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error();

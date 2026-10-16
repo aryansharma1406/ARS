@@ -13,6 +13,7 @@ import { Filter,MapPin,Search } from 'lucide-react';
 interface EventsPageProps {
   searchParams: Promise<{
     venue?: string;
+    location?: string;
     category?: string;
     source?: string;
     query?: string;
@@ -27,6 +28,7 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
   const {events, venues, issue} = await getPublicCatalog();
 
   const venueFilter = params.venue || '';
+  const locationFilter = params.location || '';
   const categoryFilter = params.category || '';
   const sourceCode = params.source || '';
   const referralScope = sourceCode ? await getReferralScope(sourceCode) : null;
@@ -41,6 +43,9 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
       || (referralScope.event_ids.length > 0 && !referralScope.event_ids.includes(evt.id)))) return false;
     if (params.date && evt.date !== params.date) return false;
     if (venueFilter && !evt.venue_name?.toLowerCase().includes(venueFilter.toLowerCase())) {
+      return false;
+    }
+    if (locationFilter && !evt.venue_location?.toLowerCase().includes(locationFilter.toLowerCase())) {
       return false;
     }
     if (categoryFilter && !evt.category.toLowerCase().includes(categoryFilter.toLowerCase())) {

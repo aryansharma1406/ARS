@@ -78,8 +78,11 @@
 .event-image-arrow {position:absolute;bottom:20px;right:20px;color:var(--night-paper);}
 .hospitality .event-copy {padding:26px;}
 .hospitality .event-title {font-size:36px;line-height:1.05;margin:14px 0 18px;text-transform:none;font-weight:400;}
-.event-venue {display:flex;align-items:start;gap:8px;color:var(--night-muted);font-size:11px;line-height:1.7;}
-.event-venue > svg {flex-shrink:0;margin-top:3px;}
+.event-quick-details {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 16px;border-top:1px solid var(--night-line);padding-top:18px;}
+.event-quick-details p {display:grid;grid-template-columns:14px minmax(0,1fr);column-gap:8px;color:var(--night-muted);font-size:10px;line-height:1.45;}
+.event-quick-details svg {grid-row:span 2;margin-top:2px;color:var(--night-gold);}
+.event-quick-details span {font-size:8px;text-transform:uppercase;letter-spacing:.12em;color:var(--night-muted);}
+.event-quick-details strong {overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--night-paper);font-size:11px;font-weight:400;}
 .event-description {font-size:13px;line-height:1.85;color:var(--night-muted);margin:20px 0;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
 .event-time {display:flex;align-items:center;gap:8px;margin-top:20px;font-size:11px;color:var(--night-paper);}
 .event-time span {color:var(--night-muted);}
@@ -89,6 +92,16 @@
 .event-access {display:flex;align-items:center;justify-content:center;gap:12px;min-height:44px;border:1px solid var(--night-line);padding:10px 15px;font-size:10px;text-transform:uppercase;letter-spacing:.1em;transition:background .2s,color .2s;}
 .event-access:hover {background:var(--night-paper);color:var(--night-ink);}
 .event-remaining {font-size:10px;color:var(--night-gold);margin-top:15px;}
+.event-remaining.is-sold-out {color:#e3a29a;}
+.location-discovery {border-top:1px solid var(--night-line);}
+.location-discovery-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin-top:34px;}
+.location-discovery-card {display:flex;min-height:190px;justify-content:space-between;gap:20px;border:1px solid var(--night-line);padding:26px;background:linear-gradient(135deg,#151611,#0b0c09);transition:border-color .2s,background .2s;}
+.location-discovery-card:hover {border-color:var(--night-gold);background:linear-gradient(135deg,#1a1a13,#0b0c09);}
+.location-discovery-card .eyebrow {display:flex;align-items:center;gap:8px;}
+.location-discovery-card h3 {margin-top:26px;font-size:clamp(36px,4vw,54px);font-weight:400;line-height:.9;letter-spacing:-.05em;}
+.location-discovery-card p:last-child {margin-top:18px;color:var(--night-muted);font-size:11px;}
+.location-discovery-arrow {align-self:flex-end;color:var(--night-gold);transition:transform .2s;}
+.location-discovery-card:hover .location-discovery-arrow {transform:translate(3px,-3px);}
 .hospitality .event-featured {grid-template-columns:1.25fr 1fr;}
 .hospitality .event-featured .event-image {aspect-ratio:1.15;}
 .hospitality .event-featured .event-copy {padding:clamp(25px,4vw,60px);}
@@ -151,6 +164,7 @@
  .night-hero {min-height:760px;min-height:100svh;}.night-hero-top {padding-top:110px;}.night-hero-top > span:last-child {display:none;}
  .night-hero-content {padding-top:70px;padding-bottom:35px;}.night-hero h1 {font-size:clamp(64px,13.8vw,104px);margin-block:24px 30px;}
  .night-hero-bottom {flex-direction:column;align-items:start;gap:24px;}.night-hero-bottom p {font-size:12px;}.night-hero-foot {padding-block:16px;font-size:8px;}.hero-coordinate {display:none;}
+ .location-discovery-grid {grid-template-columns:1fr;gap:12px;margin-top:24px;}.location-discovery-card {min-height:150px;padding:22px;}
  .brand-introduction {grid-template-columns:1fr;gap:24px;}.brand-introduction > div > p {max-width:460px;}
  .hospitality .section-heading {gap:20px;align-items:start;flex-wrap:wrap;margin-bottom:30px;}.hospitality .section-heading .editorial-link {max-width:none;white-space:nowrap;}
  .night-empty {padding:28px;flex-wrap:wrap;gap:20px;}.night-empty > div {flex-basis:calc(100% - 50px);}.night-empty > .editorial-link {margin-left:48px;}.night-empty h3 {font-size:28px;}

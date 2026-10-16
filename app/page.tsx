@@ -16,6 +16,10 @@ export default async function HomePage() {
   const upcoming = events.filter(event => event.date > today).sort((a, b) =>
     a.date.localeCompare(b.date) || a.start_time.localeCompare(b.start_time) || a.id.localeCompare(b.id)
   );
+  const locations = ['Goa', 'Jaipur'].map(name => ({
+    name,
+    events: events.filter(event => event.venue_location?.toLowerCase().includes(name.toLowerCase()) && event.date >= today),
+  }));
   return <div className="hospitality-home">
     <section className="night-hero" aria-labelledby="night-title">
       <div className="night-hero-image"><CatalogImage src="https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?q=85&w=2000&auto=format&fit=crop" alt="An illuminated dance floor, alive after dark" priority sizes="100vw" className="object-cover" /></div>
@@ -24,9 +28,16 @@ export default async function HomePage() {
       <div className="night-hero-content">
         <p className="eyebrow hero-intro">For the nights that stay with you</p>
         <h1 id="night-title">Life begins<br/><em>after dark.</em></h1>
-        <div className="night-hero-bottom"><p>Good company. Exceptional spaces.<br/>A night that becomes a story.</p><Link href="/events" className="ars-button">Find your night <ArrowUpRight size={18}/></Link></div>
+        <div className="night-hero-bottom"><p>Good company. Exceptional spaces.<br/>A night that becomes a story.</p><Link href="/events" className="ars-button">Explore events <ArrowUpRight size={18}/></Link></div>
       </div>
       <div className="night-hero-foot"><a href="#tonight">Step inside <ArrowDown size={15}/></a><span>Nightlife, considered.</span><span className="hero-coordinate">An ARS experience</span></div>
+    </section>
+
+    <section className="ars-section location-discovery" aria-label="Browse events by location">
+      <div className="section-heading"><div><p className="eyebrow">Choose your city</p><h2>Where are you going out?</h2></div><Link href="/events" className="editorial-link">View all locations <ArrowUpRight size={16}/></Link></div>
+      <div className="location-discovery-grid">{locations.map(location => <Link key={location.name} href={`/events?location=${encodeURIComponent(location.name)}`} className="location-discovery-card group">
+        <div><p className="eyebrow"><MapPin size={13}/>{location.name}</p><h3>{location.name}</h3><p>{location.events.length ? `${location.events.length} event${location.events.length === 1 ? '' : 's'} currently available` : 'No events currently listed'}</p></div><ArrowUpRight className="location-discovery-arrow" size={22}/>
+      </Link>)}</div>
     </section>
 
     <section className="ars-section brand-introduction" aria-label="The ARS experience"><p className="eyebrow">More than a night out</p><h2>The right room.<br/>The right people.<br/><em>Something unforgettable.</em></h2><div><p>We bring together the places, music and moments that make going out feel different. Discover your next night with ARS.</p><Link href="/events" className="editorial-link">Explore the experience <ArrowUpRight size={16}/></Link></div></section>

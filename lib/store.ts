@@ -47,19 +47,19 @@ export async function getVenueById(id: string): Promise<Venue | undefined> {
 export async function getEvents(venueId?: string): Promise<Event[]> {
   const client = await getSupabaseClient();
   if (venueId) await businessAccess(venueId);
-  let query = client.from('events').select('*,venues(name,address)');
+  let query = client.from('events').select('*,venues(name,address,location)');
   if (venueId) query = query.eq('venue_id', venueId);
   const { data, error } = await query;
   dbError(error);
-  return (data || []).map(({ venues, ...event }) => ({ ...event, venue_name: venues ? `${venues.name}, ${venues.address}` : '' })) as Event[];
+  return (data || []).map(({ venues, ...event }) => ({ ...event, venue_name: venues ? `${venues.name}, ${venues.address}` : '', venue_location: venues?.location || '' })) as Event[];
 }
 export async function getEventById(id: string): Promise<Event | undefined> {
   const client = await getSupabaseClient();
-  const { data, error } = await client.from('events').select('*,venues(name,address)').eq('id', id).maybeSingle();
+  const { data, error } = await client.from('events').select('*,venues(name,address,location)').eq('id', id).maybeSingle();
   dbError(error);
   if (!data) return undefined;
   const { venues, ...event } = data;
-  return { ...event, venue_name: venues ? `${venues.name}, ${venues.address}` : '' } as Event;
+  return { ...event, venue_name: venues ? `${venues.name}, ${venues.address}` : '', venue_location: venues?.location || '' } as Event;
 }
 export async function addVenue(payload: Omit<Venue,'id'|'created_at'>): Promise<Venue> {
   await requireAdmin(); return rpc('save_venue', { payload });

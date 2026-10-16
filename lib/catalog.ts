@@ -30,7 +30,7 @@ export async function getPublicCatalog(): Promise<{events:Event[];venues:Venue[]
     const venues = (venueResult.data || []) as Venue[];
     const events = (eventResult.data || []).filter(event => venues.some(venue => venue.id === event.venue_id)).map(event => {
       const venue = venues.find(venue => venue.id === event.venue_id)!;
-      return { ...event, venue_name: `${venue.name}, ${venue.address}` };
+      return { ...event, venue_name: `${venue.name}, ${venue.address}`, venue_location: venue.location };
     }) as Event[];
     return {events, venues, issue:null};
   } catch (error) {

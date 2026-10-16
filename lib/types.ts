@@ -60,6 +60,7 @@ export interface Event {
   id: string;
   venue_id: string;
   venue_name?: string;
+  venue_location?: string;
   name: string;
   description: string;
   image: string;
